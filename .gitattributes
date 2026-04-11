@@ -1,0 +1,5 @@
+# filter notebook's output via nbstripout
+*.ipynb filter=nbstripout
+*.ipynb	diff=jupyternotebook
+
+*.ipynb	merge=jupyternotebook

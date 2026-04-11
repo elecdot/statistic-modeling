@@ -1,0 +1,21 @@
+repos:
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.9.1
+    hooks:
+      - id: nbstripout
+
+  - repo: https://github.com/mwouts/jupytext
+    rev: v1.19.1
+    hooks:
+      - id: jupytext
+        args: [--sync]
+        files: ^notebooks/.*\.(ipynb|py)$
+
+# pre-commit-hooks:
+# - end-of-file-fixer: Fixes files that don't end with a newline. (POSIX standard requires that text files end with a newline character.)
+# - trailing-whitespace: Removes trailing whitespace from files.
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
