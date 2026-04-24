@@ -1,15 +1,13 @@
-# Data Research Template
+# Statistic Modeling
 
-Minimal template for data research projects.
+Research workflow for policy text collection and analysis. Maybe panel construction later.
 
-Welcome, please explore `tutorial.ipynb` first.
+## Stack
 
-Common commands:
+- Python >= 3.11
+- uv for environment and dependency management
 
-- `just ruff`: run Ruff checks.
-- `just test`: run tests.
-
-Directory overview:
+## Structure
 
 - `configs/`: experiment and pipeline configuration files.
 - `data/`: local datasets and derived data artifacts.
@@ -18,3 +16,11 @@ Directory overview:
 - `outputs/`: generated figures, tables, and run outputs.
 - `scripts/`: one-off or reusable research scripts.
 - `src/`: importable Python package code.
+
+## Open Loops
+
+
+
+## Documentations
+
+- `docs/data-dictionary.md` -- Data field definitions (high priority required)
