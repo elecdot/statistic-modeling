@@ -26,3 +26,11 @@ and Policy Text Mining.
 Use domain knowledge from data science, statistics, computer science, and policy
 research. Keep changes aligned with the causal-inference and policy-text-mining
 purpose of the project.
+
+## Working Notes
+
+- Since `uv` is blocked by a read-only cache path in the agent's sandbox,
+use a workspace-safe cache directory instead, e.g., `UV_CACHE_DIR=/tmp/uv-cache uv <command>`.
+- Do not be constrained by the repository's current dependency set. When a task
+reasonably needs a missing dependency, add it autonomously using the project's
+dependency-management conventions (basically `uv add`).
