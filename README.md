@@ -6,6 +6,7 @@ Research workflow for policy text collection and analysis. Maybe panel construct
 
 - Python >= 3.11
 - uv for environment and dependency management
+- just for integrate reusable instructions
 
 ## Structure
 
