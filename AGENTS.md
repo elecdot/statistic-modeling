@@ -6,7 +6,7 @@ project overview and local conventions.
 ## Project Goal
 
 The Causal Effect of the "Specialized, Refined, Distinctive, and Innovative"
-Policy on Enterprise Innovation: A Dual-Layer Analysis Based on Staggered DID
+(SRDI) Policy on Enterprise Innovation: A Dual-Layer Analysis Based on Staggered DID
 and Policy Text Mining.
 
 ## Core Research Questions
