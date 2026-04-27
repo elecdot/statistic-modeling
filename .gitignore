@@ -15,11 +15,6 @@ wheels/
 .pytest_cache/
 .ipynb_checkpoints/
 
-# Data artifacts
-data/raw/
-data/interim/
-data/processed/
-
 # Runtime files
 *.log
 *.out
