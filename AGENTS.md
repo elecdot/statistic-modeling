@@ -39,3 +39,4 @@ reused, consider adding them to `justfile` with appropriate guidance (for
 example, comments).
 - Keep documentation complete and in sync throughout development; if you find
 gaps, fill them in.
+- Always add appropriate comments when working.
