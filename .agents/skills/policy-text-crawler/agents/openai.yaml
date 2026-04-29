@@ -1,0 +1,3 @@
+display_name: Policy Text Crawler
+short_description: Plan and implement policy-text crawlers through Jupytext notebooks first.
+default_prompt: Use this skill to inspect policy websites, build a Jupytext feasibility notebook, and then implement compliant crawler code after the collection strategy is clear.
