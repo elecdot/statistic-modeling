@@ -1,0 +1,87 @@
+# gov.cn XXGK central policy source config.
+#
+# This file records the crawler contract agreed in notebooks/20a_decision.py.
+# It is configuration and documentation only; it does not authorize broad
+# crawling. Keep pilot collection bounded, cache-first, and auditable.
+
+source_id = "govcn_xxgk"
+jurisdiction = "central"
+source_site = "gov.cn/zhengce/xxgk"
+landing_url = "https://www.gov.cn/zhengce/xxgk"
+source_manifest = "data/source-manifest.csv"
+decision_notebook = "notebooks/20a_decision.py"
+exploration_notebook = "notebooks/20_central_gov_xxgk_explore.py"
+
+[target_scope]
+start_date = "2020-01-01"
+end_date = "2025-12-31"
+date_field = "publish_date"
+date_window_policy = "Keep records published from 2020-01-01 through 2025-12-31 for the full corpus. Pilot runs may inspect out-of-window rows, but full output should mark or filter them explicitly."
+
+[pagination]
+read_pager_fields = ["total", "pageCount", "pageNo", "pageSize"]
+default_page_size = 10
+stop_after_page_count = true
+stop_when_sorted_page_before_start_date = true
+stop_rule = "For publish_time DESC batches, continue through pageCount until the oldest list publish_time on a page is earlier than target_scope.start_date; parse that boundary page, then stop."
+
+[gateway]
+domain = "https://sousuoht.www.gov.cn"
+code_endpoint = "/athena/forward/DA2FE8C6CAD0EEBC5F97F7E3F3633A7188DAA40373EEA0E4024A081201F4D546"
+list_endpoint = "/athena/forward/486B5ABFBAD0FF5743F5E82E007EF04DDD6388E7989E9EC9CC7B84917AC81A5F"
+site_id = 8
+view_id = 30
+third_party_code = "thirdparty_code_107"
+athena_app_name = "国网搜索"
+page_observed_app_key = "a46884b2013e4d189f2a8e2d49a23525"
+page_observed_public_key = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCSMhMJQ+XLI7oW0k9Bwufur4Ag40tcsrzT7WZf6Ao0O/hyY1gZtCSYFxkxIZUXjW46j27XSW8IDX1rTJoHaMxHCWsOpTi2W5stybGYZytsY5on8gd8AIaS1d52h9eaS2TFydtJJtE50xHmT0WmoyoinWCuVCOkdCLhh9b9jSdeSQIDAQAB"
+app_key_policy = "Use page-observed public constants only; do not use private credentials."
+request_note = "Browser-facing AJAX gateway observed from the public XXGK page."
+
+[query_parameter_mapping]
+title_field_name = "maintitle"
+fulltext_field_name = ""
+fuzzy_is_precise_search = 0
+precise_is_precise_search = 1
+time_sort_field = "publish_time"
+relevance_sort_field = ""
+blank_keyword = ""
+
+[request_policy]
+user_agent = "Mozilla/5.0"
+referer = "https://www.gov.cn/zhengce/xxgk/"
+timeout_seconds = 30
+max_retries = 1
+min_delay_seconds = 1.0
+max_concurrency = 1
+cache_first = true
+respect_access_restrictions = true
+allow_login_bypass = false
+allow_captcha_bypass = false
+allow_high_concurrency = false
+
+[artifacts]
+raw_list_json = "data/raw/json/{source_id}_{query_batch_id}_page_{page_no:03d}.json"
+raw_detail_html = "data/raw/html/{candidate_id}.html"
+raw_attachment = "data/raw/{extension}/{candidate_id}_{attachment_index}.{extension}"
+interim_candidate_queue = "data/interim/{source_id}_candidate_url_queue.csv"
+interim_detail_records = "data/interim/{source_id}_policy_detail_records.parquet"
+quality_report = "outputs/{source_id}_quality_report.csv"
+processed_corpus = "data/processed/policy_texts_clean.parquet"
+
+[status_policy]
+parse_status = [
+  "success",
+  "partial",
+  "list_failed",
+  "detail_failed",
+  "attachment_failed",
+  "skipped_access_restricted",
+  "skipped_out_of_scope",
+]
+review_status = ["accepted", "needs_review", "rejected"]
+
+[notes]
+compliance = "Do not bypass login, captcha, paywall, private signatures, encrypted private parameters, or access controls."
+scale_gate = "Expand beyond one-page pilot batches only after list quality, detail parsing, deduplication, and text-quality checks pass."
+next_step = "Run reviewed pilot query batches before promoting fetch, parse, storage, and validation logic to src/ or scripts/."

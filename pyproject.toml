@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
+    "beautifulsoup4>=4.14.3",
     "openpyxl>=3.1.5",
     "pandas>=3.0.2",
 ]
@@ -34,4 +35,4 @@ dev = [
 formats = "ipynb,py:percent"
 
 [tool.ruff]
-extend-exclude = ["notebooks/*.py"]
+extend-exclude = ["notebooks/*.py", "notebooks/*.ipynb"]

@@ -1,10 +1,22 @@
 set shell := ["bash", "-c"]
 
 ruff:
-    uv run ruff check .
+    UV_CACHE_DIR=/tmp/uv-cache uv run ruff check .
 
 test:
-    uv run pytest
+    UV_CACHE_DIR=/tmp/uv-cache uv run pytest
 
 nbsync:
-    uv run jupytext --sync notebooks/*.ipynb
+    UV_CACHE_DIR=/tmp/uv-cache uv run jupytext --sync notebooks/*.ipynb
+
+# Print the reviewed gov.cn XXGK list-request queue without fetching.
+govcn-xxgk-queue:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/govcn_xxgk_crawler.py queue
+
+# Run the gov.cn XXGK pilot in cache-first mode. This does not send network requests.
+govcn-xxgk-cache-pilot:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/govcn_xxgk_crawler.py run
+
+# Run the reviewed gov.cn XXGK live collection for the configured 2025-2020 scope.
+govcn-xxgk-live-full:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/govcn_xxgk_crawler.py run --fetch-live --max-details-per-batch -1
