@@ -1,0 +1,2 @@
+query_batch_id,source_id,source_site,keyword,search_position,field_name,match_mode,is_precise_search,sort_by,sort_field,page_size,max_pages,enabled,purpose,review_status,notes
+govcn_xxgk_all_recent_time_full,govcn_xxgk,gov.cn/zhengce/xxgk,,fulltext,,fuzzy,0,time,publish_time,10,1000,true,Build central all-policy XXGK corpus for 2020-2025.,accepted,Blank keyword full corpus run; actual stop uses pager.pageCount and target-date boundary before this safety cap.

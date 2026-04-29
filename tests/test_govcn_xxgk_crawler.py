@@ -23,10 +23,14 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_config_and_query_batches_load() -> None:
 	config = load_source_config(ROOT / "configs" / "govcn_xxgk_sources.toml")
 	batches = load_query_batches(ROOT / "configs" / "govcn_xxgk_query_batches.csv", enabled_only=False)
+	all_batches = load_query_batches(ROOT / "configs" / "govcn_xxgk_all_query_batches.csv", enabled_only=False)
 
 	assert config.source_id == "govcn_xxgk"
 	assert len(batches) == 4
 	assert [batch.enabled for batch in batches].count(True) == 3
+	assert len(all_batches) == 1
+	assert all_batches[0].keyword == ""
+	assert all_batches[0].max_pages == 1000
 
 
 def test_queue_and_payload_mapping() -> None:
@@ -41,6 +45,26 @@ def test_queue_and_payload_mapping() -> None:
 	assert payload["searchFields"] == [{"fieldName": "", "searchWord": "专精特新"}]
 	assert payload["isPreciseSearch"] == 0
 	assert payload["sorts"] == [{"sortField": "publish_time", "sortOrder": "DESC"}]
+
+	all_batch = load_query_batches(ROOT / "configs" / "govcn_xxgk_all_query_batches.csv")[0]
+	all_payload = build_list_payload(config, all_batch, code="CODE", page_no=1)
+	assert all_payload["searchFields"] == [{"fieldName": "", "searchWord": ""}]
+	assert all_payload["isPreciseSearch"] == 0
+	assert all_payload["sorts"] == [{"sortField": "publish_time", "sortOrder": "DESC"}]
+
+
+def test_all_policy_outputs_are_isolated_from_srdi_outputs() -> None:
+	srdi_outputs = {
+		"data/interim/govcn_xxgk_candidate_url_queue.csv",
+		"data/interim/govcn_xxgk_policy_detail_records.csv",
+		"outputs/govcn_xxgk_quality_report.csv",
+	}
+	all_outputs = {
+		"data/interim/govcn_xxgk_all_candidate_url_queue.csv",
+		"data/interim/govcn_xxgk_all_policy_detail_records.csv",
+		"outputs/govcn_xxgk_all_quality_report.csv",
+	}
+	assert srdi_outputs.isdisjoint(all_outputs)
 
 
 def test_parse_cached_list_json_and_detail_html() -> None:

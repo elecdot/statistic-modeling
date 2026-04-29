@@ -62,6 +62,18 @@ Research workflow for policy text collection and analysis. Maybe panel construct
 - Current full run: 50 candidate rows, 28 deduplicated in-window detail records, all 28 parsed successfully.
 - Multi-keyword provenance is preserved in `keyword_hit` and `query_batch_id` with `;` separators.
 
+## Current XXGK All-Policy Corpus
+
+- Source: `gov.cn/zhengce/xxgk`
+- Scope: all central-government XXGK policy detail pages returned by blank-keyword publication-date search from 2020-01-01 through 2025-12-31.
+- Query batch config: `configs/govcn_xxgk_all_query_batches.csv`
+- Candidate queue: `data/interim/govcn_xxgk_all_candidate_url_queue.csv`
+- Structured records: `data/interim/govcn_xxgk_all_policy_detail_records.csv`
+- Quality report: `outputs/govcn_xxgk_all_quality_report.csv`
+- Probe command: `just govcn-xxgk-all-probe`
+- Full command: `just govcn-xxgk-all-full`
+- Current full run: 760 candidate rows, 720 deduplicated in-window detail records, 719 parsed successfully, 1 `detail_failed` timeout retained for review.
+
 ## Documentations
 
 - `docs/data-dictionary.md` -- Data field definitions (high priority required)
