@@ -36,9 +36,11 @@ connect these policy-text corpora to panel construction and causal modeling.
 - [x] Register collection configuration before formal collection.
   Add a small YAML/TOML/CSV config under `configs/` for XXGK query batches, and
   document the config fields before running more than pilot pages.
-- [x] Upgrade `data/source-manifest.csv` only after the next source batch.
-  Current notes record notebook/script/config provenance. Future schema upgrade
-  candidates are documented in `docs/source-manifest-guide.md`.
+- [x] Upgrade `data/source-manifest.csv` after the XXGK source batch.
+  The manifest now has dedicated provenance fields for generator code, config
+  files, upstream artifacts, quality reports, collection status, review status,
+  and record counts. Maintain future registry rows according to
+  `docs/source-manifest-guide.md`.
 - [x] Promote crawler logic out of notebooks only after the search strategy is stable.
   A first cache-first gov.cn XXGK crawler skeleton now exists under
   `src/statistic_modeling/policy_text_crawler/` with the command entry point

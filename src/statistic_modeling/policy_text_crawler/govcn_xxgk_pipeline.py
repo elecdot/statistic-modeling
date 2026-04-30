@@ -132,7 +132,10 @@ def filter_candidates_to_target_window(candidates: pd.DataFrame, config: SourceC
 	start_date = date.fromisoformat(scope["start_date"])
 	end_date = date.fromisoformat(scope["end_date"])
 	filtered = candidates.copy()
-	publish_dates = pd.to_datetime(filtered.get("publish_time", filtered.get("cwrq")), errors="coerce").dt.date
+	date_values = filtered.get("publish_time", pd.Series(index=filtered.index, dtype=object))
+	if "cwrq" in filtered:
+		date_values = date_values.combine_first(filtered["cwrq"])
+	publish_dates = pd.to_datetime(date_values, errors="coerce").dt.date
 	in_window = publish_dates.between(start_date, end_date)
 	return filtered[in_window.fillna(False)].reset_index(drop=True)
 

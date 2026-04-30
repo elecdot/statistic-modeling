@@ -128,7 +128,8 @@ def test_candidate_window_filter_and_provenance_aggregation() -> None:
 				"candidate_id": "b",
 				"query_batch_id": "batch_b",
 				"keyword_hit": "小巨人",
-				"publish_time": "2024-01-01",
+				"publish_time": None,
+				"cwrq": "2024-01-01",
 				"source_url": "https://www.gov.cn/a.htm",
 				"raw_json_path": "b.json",
 			},
@@ -151,6 +152,39 @@ def test_candidate_window_filter_and_provenance_aggregation() -> None:
 	assert aggregated.loc[0, "query_batch_id"] == "batch_a;batch_b"
 
 
+def test_source_manifest_globs_do_not_mix_srdi_and_all_policy_cache() -> None:
+	manifest = pd.read_csv(ROOT / "data" / "source-manifest.csv").fillna("")
+	assert len(manifest) == 12
+	assert {
+		"generated_by",
+		"config_files",
+		"upstream_files",
+		"quality_report",
+		"collection_status",
+		"review_status",
+		"record_count",
+	}.issubset(manifest.columns)
+
+	def resolve_grouped_globs(value: str) -> list[Path]:
+		matches: list[Path] = []
+		for pattern in value.split(";"):
+			pattern = pattern.strip()
+			if pattern:
+				matches.extend((ROOT / "data").glob(pattern))
+		return sorted(matches)
+
+	srdi_json_row = manifest.loc[manifest["source_name"] == "政府信息公开平台_中国政府网_Crawler列表JSON"].iloc[0]
+	all_json_row = manifest.loc[manifest["source_name"] == "政府信息公开平台_中国政府网_AllPolicy列表JSON"].iloc[0]
+
+	srdi_matches = resolve_grouped_globs(srdi_json_row["local_file"])
+	all_matches = resolve_grouped_globs(all_json_row["local_file"])
+
+	assert srdi_matches
+	assert len(all_matches) == 76
+	assert all("govcn_xxgk_all" not in path.name for path in srdi_matches)
+	assert all("govcn_xxgk_all" in path.name for path in all_matches)
+
+
 def test_legacy_cache_fallback_is_first_page_only() -> None:
 	config = load_source_config(ROOT / "configs" / "govcn_xxgk_sources.toml")
 	batch = next(
@@ -161,6 +195,19 @@ def test_legacy_cache_fallback_is_first_page_only() -> None:
 
 	assert load_cached_list_payload(ROOT, config, batch, 1) is not None
 	assert load_cached_list_payload(ROOT, config, batch, 50) is None
+
+
+def test_planned_cache_paths_remain_compatible_with_manifest_narrowing() -> None:
+	config = load_source_config(ROOT / "configs" / "govcn_xxgk_sources.toml")
+	srdi_batch = next(
+		batch
+		for batch in load_query_batches(ROOT / "configs" / "govcn_xxgk_query_batches.csv")
+		if batch.query_batch_id == "govcn_xxgk_fulltext_srdi_time_pilot"
+	)
+	all_batch = load_query_batches(ROOT / "configs" / "govcn_xxgk_all_query_batches.csv")[0]
+
+	assert load_cached_list_payload(ROOT, config, srdi_batch, 1) is not None
+	assert load_cached_list_payload(ROOT, config, all_batch, 1) is not None
 
 
 def test_list_pagination_stop_reason_uses_pager_and_date_window() -> None:
