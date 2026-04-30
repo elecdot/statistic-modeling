@@ -28,3 +28,7 @@ govcn-xxgk-all-probe:
 # Run the central all-policy XXGK corpus for the configured 2020-2025 scope.
 govcn-xxgk-all-full:
     UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/govcn_xxgk_crawler.py --query-batches configs/govcn_xxgk_all_query_batches.csv run --fetch-live --max-details-per-batch -1 --candidates-output data/interim/govcn_xxgk_all_candidate_url_queue.csv --details-output data/interim/govcn_xxgk_all_policy_detail_records.csv --quality-output outputs/govcn_xxgk_all_quality_report.csv
+
+# Build the reviewed central all-policy processed text corpus v0.
+govcn-xxgk-processed-v0:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/govcn_xxgk_processed_corpus.py

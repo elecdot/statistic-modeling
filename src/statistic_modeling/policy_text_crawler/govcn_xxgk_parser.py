@@ -15,6 +15,7 @@ from statistic_modeling.policy_text_crawler.config import QueryBatch, SourceConf
 DETAIL_SELECTORS = [".pages_content", ".article", ".content", ".TRS_Editor", "#UCAP-CONTENT", "article"]
 ATTACHMENT_RE = re.compile(r"\.(pdf|doc|docx|xls|xlsx|wps|zip)(?:$|[?#])", flags=re.IGNORECASE)
 DATE_RE = re.compile(r"(?:发布时间|发布日期|成文日期)[:：\s]*([0-9]{4}[-年][0-9]{1,2}[-月][0-9]{1,2})")
+OFFICIAL_SUBJECT_SEPARATOR = "\\"
 
 
 def clean_text(value: str | None) -> str:
@@ -52,6 +53,22 @@ def infer_document_type(title: str, attachment_urls: list[str]) -> str:
 	if attachment_urls:
 		return "attachment_page"
 	return "needs_review"
+
+
+def extract_official_subject_categories(soup: BeautifulSoup) -> list[str]:
+	"""Extract gov.cn's official non-exclusive `主题分类` labels."""
+	category_node = soup.select_one(".zcwj_ztfl")
+	if category_node is None:
+		for label in soup.find_all(string=lambda value: value and "主题分类" in value):
+			cell = label.find_parent("td")
+			next_cell = cell.find_next_sibling("td") if cell else None
+			if next_cell:
+				category_node = next_cell
+				break
+	if category_node is None:
+		return []
+	raw_value = clean_text(category_node.get_text(" ", strip=True))
+	return [part.strip() for part in raw_value.split(OFFICIAL_SUBJECT_SEPARATOR) if part.strip()]
 
 
 def make_policy_id(source_id: str, source_url: str) -> str:
@@ -143,6 +160,7 @@ def parse_detail_html(
 		body_text = clean_text(soup.get_text(" ", strip=True))
 
 	date_match = DATE_RE.search(body_text)
+	official_subject_categories = extract_official_subject_categories(soup)
 	attachment_urls: list[str] = []
 	for anchor in soup.select("a[href]"):
 		href = anchor.get("href", "")
@@ -163,6 +181,7 @@ def parse_detail_html(
 		"source_url": url,
 		"query_batch_id": candidate.get("query_batch_id"),
 		"keyword_hit": candidate.get("keyword_hit") or candidate.get("keyword"),
+		"official_subject_categories": official_subject_categories,
 		"document_type": infer_document_type(title, attachment_urls),
 		"text_raw": body_text,
 		"text_clean": clean_text(body_text),

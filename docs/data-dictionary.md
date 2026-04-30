@@ -102,7 +102,7 @@ review status.
 | --- | --- | --- |
 | Data layer | `interim` | `interim` |
 | Observation unit | One deduplicated policy detail page | One deduplicated policy detail page |
-| Current shape | 28 rows x 21 columns | 720 rows x 21 columns |
+| Current shape | 28 rows x 23 columns | 720 rows x 23 columns |
 | Date scope | 2020-2025 | 2020-2025 |
 | URL uniqueness | Unique `source_url` | Unique `source_url` |
 | Generator | `scripts/govcn_xxgk_crawler.py` | `scripts/govcn_xxgk_crawler.py` |
@@ -118,6 +118,7 @@ review status.
 | `source_url` | string / URL | Public policy detail page URL; unique in each detail output. |
 | `query_batch_id` | string | Query provenance. Multiple values are separated by `;`. |
 | `keyword_hit` | string | Keyword provenance. Multiple values are separated by `;`; blank for all-policy rows. |
+| `official_subject_categories` | string / serialized list | Source-provided gov.cn `主题分类` labels. Values are non-exclusive official Chinese categories split from the detail page's `\`-separated field. This taxonomy is specific to gov.cn and should not be assumed for local-government sources. |
 | `document_type` | string | Coarse parser label: `policy_document`, `attachment_page`, or `needs_review`. |
 | `text_raw` | string | Extracted page text before conservative normalization. |
 | `text_clean` | string | Conservatively normalized text for downstream processing. |
@@ -162,3 +163,64 @@ run acceptance checks and should be reviewed before downstream text mining.
 | `out_of_target_date_window` | integer | Detail rows outside 2020-2025. |
 | `duplicate_source_urls` | integer | Duplicate URLs in candidate rows. |
 | `duplicate_text_hashes` | integer | Duplicate `text_hash` values in detail rows. |
+
+### gov.cn XXGK Processed All-Policy Corpus v0
+
+File:
+
+- `data/processed/govcn_xxgk_all_policy_text_corpus_v0.csv`
+
+This is the first analysis-ready central-government XXGK text corpus. It is
+derived from the all-policy detail records after manual QA in
+`notebooks/30_central_gov_xxgk_corpus_qa.py`.
+
+Inclusion rule:
+
+- include rows with `parse_status=success`, accepted manual review, in-window
+  publication date, and non-empty text;
+- include all reviewed short-text rows because manual review confirmed the text
+  was correctly captured;
+- exclude the one retained timeout / `detail_failed` row.
+
+| Item | Value |
+| --- | --- |
+| Data layer | `processed` |
+| Observation unit | One accepted central gov.cn XXGK policy detail page |
+| Current shape | 719 rows x 18 columns |
+| Date scope | 2020-2025 |
+| URL uniqueness | Unique `source_url` |
+| Generator | `scripts/govcn_xxgk_processed_corpus.py` |
+| Quality report | `outputs/govcn_xxgk_all_processed_v0_quality_report.csv` |
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `policy_id` | string | Stable policy ID derived from `source_url`. |
+| `province` | string | Fixed to `central`. |
+| `title` | string | Parsed policy title. |
+| `publish_date` | date-like string | Publication date. |
+| `publish_year` | integer | Year derived from `publish_date`. |
+| `agency` | string | Parsed or inferred issuing agency. |
+| `source_site` | string | Fixed to `gov.cn/zhengce/xxgk`. |
+| `source_url` | string / URL | Public policy detail page URL. |
+| `official_subject_categories` | string / serialized list | Source-provided gov.cn `主题分类` labels. |
+| `document_type` | string | Coarse parser label retained from detail records. |
+| `text_clean` | string | Main cleaned text for downstream NLP and policy-text mining. |
+| `text_len` | integer | Character length of `text_clean`. |
+| `text_hash` | string | SHA-256 hash of normalized text. |
+| `attachment_urls` | string / serialized list | Downloadable attachment URLs found on the page. |
+| `raw_json_path` | string / path | Upstream raw list JSON artifact path. |
+| `raw_html_path` | string / path | Archived raw detail HTML path. |
+| `parse_status` | string | Retained parser status; expected `success` in processed v0. |
+| `review_status` | string | Final review status after manual QA; expected `accepted` in processed v0. |
+
+### gov.cn XXGK Processed v0 Quality Report
+
+File:
+
+- `outputs/govcn_xxgk_all_processed_v0_quality_report.csv`
+
+The processed v0 report is a long-form metric table with columns
+`metric`, `value`, and `note`. Current key values: 720 source detail records,
+719 processed records, 1 excluded timeout/detail failure, 11 accepted short-text
+records, 0 duplicate URLs, 0 duplicate text hashes, and 719 rows with official
+subject categories.

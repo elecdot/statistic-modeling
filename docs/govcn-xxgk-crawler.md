@@ -201,6 +201,7 @@ Detail records:
 | `source_url` | Public policy detail page URL. |
 | `query_batch_id` | Query provenance; multiple values are `;` separated. |
 | `keyword_hit` | Keyword provenance; multiple values are `;` separated. |
+| `official_subject_categories` | gov.cn source-provided `主题分类` labels, preserved as non-exclusive official Chinese categories split from the page's `\`-separated value. |
 | `document_type` | Coarse parser label: `policy_document`, `attachment_page`, or `needs_review`. |
 | `text_raw` | Raw extracted page text. |
 | `text_clean` | Conservatively normalized text. |
@@ -229,6 +230,18 @@ Quality reports:
 | `out_of_target_date_window` | Detail rows outside 2020-2025. |
 | `duplicate_source_urls` | Duplicate URLs in candidate rows. |
 | `duplicate_text_hashes` | Duplicate text hashes in detail rows. |
+
+Processed v0:
+
+```bash
+just govcn-xxgk-processed-v0
+```
+
+This builds `data/processed/govcn_xxgk_all_policy_text_corpus_v0.csv` from
+cached all-policy detail records and writes
+`outputs/govcn_xxgk_all_processed_v0_quality_report.csv`. The v0 rule keeps 719
+accepted text records, includes manually reviewed short-text rows, and excludes
+the one retained timeout/detail-failed row.
 
 ## Failure Handling
 

@@ -15,6 +15,10 @@ from statistic_modeling.policy_text_crawler.govcn_xxgk_pipeline import (
 	load_cached_list_payload,
 	select_detail_candidates,
 )
+from statistic_modeling.policy_text_crawler.govcn_xxgk_processed import (
+	build_processed_quality_report,
+	build_processed_v0,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -96,6 +100,49 @@ def test_parse_cached_list_json_and_detail_html() -> None:
 	assert record["text_hash"]
 
 
+def test_parse_detail_html_extracts_official_subject_categories() -> None:
+	config = load_source_config(ROOT / "configs" / "govcn_xxgk_sources.toml")
+	candidate = {
+		"candidate_id": "sample",
+		"title": "sample",
+		"source_url": "https://www.gov.cn/zhengce/content/2021-04/25/content_5601954.htm",
+	}
+	raw_html_path = (
+		ROOT
+		/ "data"
+		/ "raw"
+		/ "html"
+		/ "central_gov_xxgk_detail_https_www_gov_cn_zhengce_content_2021_04_25_content_5601954_htm.html"
+	)
+
+	record = parse_detail_html(
+		raw_html_path.read_text(encoding="utf-8"),
+		config=config,
+		candidate=candidate,
+		raw_html_path=raw_html_path,
+	)
+
+	assert record["official_subject_categories"] == ["城乡建设、环境保护", "其他"]
+
+
+def test_processed_v0_applies_manual_review_rule() -> None:
+	details = pd.read_csv(ROOT / "data" / "interim" / "govcn_xxgk_all_policy_detail_records.csv")
+	processed = build_processed_v0(details)
+	quality_report = build_processed_quality_report(details, processed).set_index("metric")
+
+	assert len(processed) == 719
+	assert set(processed["parse_status"]) == {"success"}
+	assert set(processed["review_status"]) == {"accepted"}
+	assert processed["source_url"].is_unique
+	assert processed["text_hash"].is_unique
+	assert (processed["text_len"] < 200).sum() == 11
+	assert "official_subject_categories" in processed
+	assert "inline_attachment_titles" not in processed
+	assert quality_report.loc["excluded_detail_failed", "value"] == 1
+	assert quality_report.loc["rows_with_official_subject_categories", "value"] == 719
+	assert "rows_with_inline_attachment_titles" not in quality_report.index
+
+
 def test_target_date_window_flags_out_of_scope_rows() -> None:
 	config = load_source_config(ROOT / "configs" / "govcn_xxgk_sources.toml")
 	details = pd.DataFrame(
@@ -154,7 +201,7 @@ def test_candidate_window_filter_and_provenance_aggregation() -> None:
 
 def test_source_manifest_globs_do_not_mix_srdi_and_all_policy_cache() -> None:
 	manifest = pd.read_csv(ROOT / "data" / "source-manifest.csv").fillna("")
-	assert len(manifest) == 12
+	assert len(manifest) == 13
 	assert {
 		"generated_by",
 		"config_files",
