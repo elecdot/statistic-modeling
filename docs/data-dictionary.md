@@ -45,3 +45,120 @@ Notes:
   `primary_policy_instrument_type` and `policy_instrument_binary_code` are
   normalized into supply-side, demand-side, environmental, and SRDI
   dedicated-policy indicators.
+
+### gov.cn XXGK Candidate Queues
+
+Files:
+
+- `data/interim/govcn_xxgk_candidate_url_queue.csv`
+- `data/interim/govcn_xxgk_all_candidate_url_queue.csv`
+
+Candidate queues are list-page outputs from `gov.cn/zhengce/xxgk`. They preserve
+query provenance, page metadata, and raw JSON artifact paths before detail-page
+parsing.
+
+| Item | SRDI corpus | All-policy corpus |
+| --- | --- | --- |
+| Data layer | `interim` | `interim` |
+| Observation unit | One list-row candidate URL | One list-row candidate URL |
+| Current shape | 50 rows x 17 columns | 760 rows x 17 columns |
+| Source | `gov.cn/zhengce/xxgk` | `gov.cn/zhengce/xxgk` |
+| Query scope | `中小企业`, `专精特新`, `小巨人` | Blank keyword |
+| Date scope | Boundary pages retained; details filtered to 2020-2025 | Boundary pages retained; details filtered to 2020-2025 |
+| Generator | `scripts/govcn_xxgk_crawler.py` | `scripts/govcn_xxgk_crawler.py` |
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `candidate_id` | string | Stable candidate ID derived from `source_url`. |
+| `query_batch_id` | string | Query batch that produced the candidate. |
+| `province` | string | Fixed to `central`. |
+| `source_site` | string | Fixed to `gov.cn/zhengce/xxgk`. |
+| `title` | string | List-row title with HTML tags removed. |
+| `fwzh` | string | Document number from list JSON when available. |
+| `cwrq` | datetime-like string | Formulation date from list JSON when available. |
+| `publish_time` | datetime-like string | Publication timestamp from list JSON. |
+| `source_url` | string / URL | Public policy detail page URL. |
+| `keyword_hit` | string | Query keyword. Blank for all-policy rows. |
+| `category_id` | integer | Source-side category ID used by the XXGK list. |
+| `page_no` | integer | List page number. |
+| `list_total` | integer | `pager.total` from the list JSON response. |
+| `list_page_count` | integer | `pager.pageCount` from the list JSON response. |
+| `list_page_size` | integer | `pager.pageSize` from the list JSON response. |
+| `parse_status` | string | List parse status; currently expected to be `success`. |
+| `raw_json_path` | string / path | Archived raw list JSON path. |
+
+### gov.cn XXGK Detail Records
+
+Files:
+
+- `data/interim/govcn_xxgk_policy_detail_records.csv`
+- `data/interim/govcn_xxgk_all_policy_detail_records.csv`
+
+Detail records are the main policy-text crawler outputs. They contain parsed
+policy metadata, raw and cleaned text, provenance links, parser status, and
+review status.
+
+| Item | SRDI corpus | All-policy corpus |
+| --- | --- | --- |
+| Data layer | `interim` | `interim` |
+| Observation unit | One deduplicated policy detail page | One deduplicated policy detail page |
+| Current shape | 28 rows x 21 columns | 720 rows x 21 columns |
+| Date scope | 2020-2025 | 2020-2025 |
+| URL uniqueness | Unique `source_url` | Unique `source_url` |
+| Generator | `scripts/govcn_xxgk_crawler.py` | `scripts/govcn_xxgk_crawler.py` |
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `policy_id` | string | Stable policy ID derived from `source_url`. |
+| `province` | string | Fixed to `central`. |
+| `title` | string | Parsed policy title. |
+| `publish_date` | date-like string | Parsed publication date. |
+| `agency` | string | Parsed or inferred issuing agency. |
+| `source_site` | string | Fixed to `gov.cn/zhengce/xxgk`. |
+| `source_url` | string / URL | Public policy detail page URL; unique in each detail output. |
+| `query_batch_id` | string | Query provenance. Multiple values are separated by `;`. |
+| `keyword_hit` | string | Keyword provenance. Multiple values are separated by `;`; blank for all-policy rows. |
+| `document_type` | string | Coarse parser label: `policy_document`, `attachment_page`, or `needs_review`. |
+| `text_raw` | string | Extracted page text before conservative normalization. |
+| `text_clean` | string | Conservatively normalized text for downstream processing. |
+| `attachment_urls` | string / serialized list | Attachment URLs found on the detail page. |
+| `raw_json_path` | string / path | Upstream raw list JSON artifact path. |
+| `raw_html_path` | string / path | Archived raw detail HTML path. |
+| `parse_status` | string | `success`, `partial`, `detail_failed`, or another configured parser status. |
+| `review_status` | string | `accepted`, `needs_review`, or `rejected`. |
+| `error` | string | Error message for failed rows. |
+| `crawl_time` | datetime-like string | UTC timestamp for detail parsing/fetching. |
+| `text_hash` | string | SHA-256 hash of normalized text. |
+| `in_target_date_window` | boolean | Whether `publish_date` is within 2020-01-01 through 2025-12-31. |
+
+Status interpretation:
+
+- `parse_status=success`: parser extracted detail text.
+- `parse_status=detail_failed`: detail page failed to fetch or parse; inspect
+  `error` and retry or review manually.
+- `review_status=needs_review`: record parsed but is short, unusual, or failed.
+- `review_status=accepted`: record passed current automated checks.
+
+### gov.cn XXGK Quality Reports
+
+Files:
+
+- `outputs/govcn_xxgk_quality_report.csv`
+- `outputs/govcn_xxgk_all_quality_report.csv`
+
+Quality reports are one-row summaries generated by the crawler. They are used as
+run acceptance checks and should be reviewed before downstream text mining.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `candidate_records` | integer | Number of candidate rows. |
+| `detail_records` | integer | Number of detail rows. |
+| `success_details` | integer | Detail rows with `parse_status=success`. |
+| `partial_details` | integer | Detail rows with `parse_status=partial`. |
+| `failed_details` | integer | Detail rows with `parse_status=detail_failed`. |
+| `empty_body_text` | integer | Detail rows with empty `text_raw`. |
+| `short_body_text_lt_200` | integer | Detail rows where `text_raw` is shorter than 200 characters. |
+| `missing_publication_dates` | integer | Detail rows without `publish_date`. |
+| `out_of_target_date_window` | integer | Detail rows outside 2020-2025. |
+| `duplicate_source_urls` | integer | Duplicate URLs in candidate rows. |
+| `duplicate_text_hashes` | integer | Duplicate `text_hash` values in detail rows. |
