@@ -296,7 +296,7 @@ def test_candidate_window_filter_and_provenance_aggregation() -> None:
 
 def test_source_manifest_globs_do_not_mix_srdi_and_all_policy_cache() -> None:
 	manifest = pd.read_csv(ROOT / "data" / "source-manifest.csv").fillna("")
-	assert len(manifest) == 25
+	assert len(manifest) == 27
 	assert {
 		"generated_by",
 		"config_files",
@@ -333,6 +333,8 @@ def test_manual_srdi_text_mining_outputs_are_consistent() -> None:
 	quality_report = pd.read_csv(ROOT / "outputs" / "manual_policy_srdi_text_mining_v0_quality_report.csv").set_index("metric")
 	dictionary = pd.read_csv(ROOT / "outputs" / "manual_policy_srdi_tool_dictionary_v0.csv")
 	dictionary_coverage = pd.read_csv(ROOT / "outputs" / "manual_policy_srdi_tool_dictionary_coverage_v0.csv")
+	revision_effect = pd.read_csv(ROOT / "outputs" / "manual_policy_srdi_dictionary_revision_effect_v0.csv").set_index("metric")
+	keyword_quality = pd.read_csv(ROOT / "outputs" / "manual_policy_srdi_keyword_quality_check_v0.csv")
 	no_hit_records = pd.read_csv(ROOT / "outputs" / "manual_policy_srdi_no_tool_hit_records_v0.csv")
 	no_hit_sample = pd.read_csv(ROOT / "outputs" / "manual_policy_srdi_no_tool_hit_review_sample_v0.csv")
 
@@ -342,13 +344,17 @@ def test_manual_srdi_text_mining_outputs_are_consistent() -> None:
 	assert province_year_features["province"].nunique() == 31
 	assert set(province_year_features["publish_year"]) == {2020, 2021, 2022, 2023, 2024, 2025}
 	assert {"supply", "demand", "environment"} == set(dictionary["category"])
-	assert len(dictionary_coverage) == 53
+	assert len(dictionary_coverage) == 85
 	assert (dictionary_coverage["records_hit"] > 0).all()
-	assert len(no_hit_records) == 352
-	assert len(no_hit_sample) == 60
+	assert revision_effect.loc["policy_records_without_tool_hit", "delta"] == -81
+	assert len(keyword_quality) == 85
+	assert keyword_quality["needs_review"].sum() == 50
+	assert len(no_hit_records) == 271
+	assert len(no_hit_sample) == 30
 	assert quality_report.loc["row_feature_records", "value"] == 4475
 	assert quality_report.loc["province_year_feature_records", "value"] == 186
-	assert quality_report.loc["no_tool_hit_review_sample_records", "value"] == 60
+	assert quality_report.loc["no_tool_hit_review_sample_records", "value"] == 30
+	assert quality_report.loc["zero_coverage_terms", "value"] == 0
 
 
 def test_legacy_cache_fallback_is_first_page_only() -> None:

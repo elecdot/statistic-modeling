@@ -35,9 +35,11 @@ expansion.
   records. Start with title/abstract keyword features, publication-year trends,
   province distribution, central/local comparison, and simple policy-tool
   dictionary checks.
-- [ ] Review the v0 policy-tool dictionary in
-  `outputs/manual_policy_srdi_tool_dictionary_v0.csv` and inspect no-hit rows
-  before treating supply/demand/environment features as paper-facing labels.
+- [x] Review the v0 policy-tool dictionary and inspect no-hit rows. A 30-record
+  sample-driven revision is archived in
+  `docs/manual-srdi-policy-mining-notes.md`.
+- [ ] Decide whether to freeze the current title/abstract dictionary features
+  as v0 paper-facing proxy variables.
 - [ ] Decide whether title/abstract-only evidence is enough for the paper's
   text-mining claims, or whether selected full-text retrieval is needed.
 - [ ] Link `province_year_srdi_policy_intensity_v0.csv` to the downstream
@@ -46,6 +48,7 @@ expansion.
 ## Documentations
 
 - `docs/govcn-xxgk-dev-notes.md` -- gov.cn XXGK development notes, milestone history, current artifact snapshot, and stage decisions.
+- `docs/manual-srdi-policy-mining-notes.md` -- manual SRDI policy mining milestone and paper-drafting notes.
 - `docs/govcn-xxgk-crawler.md` -- gov.cn XXGK crawler operation, mechanism, outputs, and demo checks.
 - `docs/source-manifest-guide.md` -- Data registration rules for `data/source-manifest.csv`.
 - `docs/data-dictionary.md` -- Data field definitions for registered datasets.

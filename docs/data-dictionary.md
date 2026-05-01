@@ -264,13 +264,21 @@ Dictionary codebook used by `notebooks/40_manual_srdi_text_mining.py`.
 Related review artifacts:
 
 - `outputs/manual_policy_srdi_tool_dictionary_coverage_v0.csv`: term-level
-  `records_hit` and `total_hits` counts. Current inspect finds no zero-coverage
-  dictionary terms.
-- `outputs/manual_policy_srdi_no_tool_hit_records_v0.csv`: all 352 rows with no
-  v0 supply/demand/environment dictionary hit, including title and abstract for
-  manual review.
+  `records_hit` and `total_hits` counts. Current revised dictionary has 85
+  terms and no zero-coverage dictionary terms.
+- `outputs/manual_policy_srdi_dictionary_revision_effect_v0.csv`: before/after
+  effect table for the manual no-hit review revision. The revision added 32
+  dictionary terms, reduced no-hit records from 352 to 271, and increased
+  demand-side matches most strongly.
+- `outputs/manual_policy_srdi_keyword_quality_check_v0.csv`: term-level quality
+  table with coverage share, term length, and review flags. Current check flags
+  50 terms for low/high coverage, short length, or broad meaning; these flags
+  are cautions for interpretation, not automatic exclusion rules.
+- `outputs/manual_policy_srdi_no_tool_hit_records_v0.csv`: all 271 rows with no
+  revised v0 supply/demand/environment dictionary hit, including title and
+  abstract for manual review.
 - `outputs/manual_policy_srdi_no_tool_hit_review_sample_v0.csv`: deterministic
-  60-row review sample, 10 no-hit records per year.
+  30-row review sample, 5 no-hit records per year.
 - `outputs/manual_policy_srdi_no_tool_hit_summary_v0.csv`: no-hit counts by
   year and province.
 
@@ -281,10 +289,14 @@ metrics:
 
 - `row_feature_records=4475`
 - `province_year_feature_records=186`
-- `policy_records_with_any_tool_hit=4123`
-- `policy_records_without_tool_hit=352`
-- `no_tool_hit_review_sample_records=60`
-- `dictionary_terms=53`
+- `policy_records_with_any_tool_hit=4204`
+- `policy_records_without_tool_hit=271`
+- `no_tool_hit_review_sample_records=30`
+- `dictionary_terms=85`
+- `zero_coverage_terms=0`
+- `low_coverage_terms_lte_5_records=6`
+- `high_coverage_terms_gte_25pct_records=1`
+- `terms_with_review_flags=50`
 
 ### gov.cn XXGK Candidate Queues
 

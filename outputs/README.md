@@ -22,6 +22,10 @@ Most generated outputs should stay out of Git.
   to build supply, demand, and environment policy-tool text features.
 - `manual_policy_srdi_tool_dictionary_coverage_v0.csv`: term-level coverage
   counts for reviewing the v0 dictionary.
+- `manual_policy_srdi_dictionary_revision_effect_v0.csv`: before/after effect
+  of the dictionary revision based on the no-hit manual sample.
+- `manual_policy_srdi_keyword_quality_check_v0.csv`: term-level keyword quality
+  flags for low/high coverage, short terms, and broad-meaning terms.
 - `manual_policy_srdi_no_tool_hit_records_v0.csv`: all records without a v0
   policy-tool dictionary hit.
 - `manual_policy_srdi_no_tool_hit_review_sample_v0.csv`: deterministic no-hit
