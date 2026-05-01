@@ -46,6 +46,51 @@ Notes:
   normalized into supply-side, demand-side, environmental, and SRDI
   dedicated-policy indicators.
 
+### `data/interim/manual_policy_all_keyword_srdi.xlsx`
+
+Manual keyword-policy workbook collected as a time-constrained replacement for
+continuing broad crawler expansion. It covers central and local policy sources
+whose metadata contains the keyword `专精特新`. This workbook is the current
+primary upstream table for the next text-processing and policy-mining stage.
+
+| Item | Value |
+| --- | --- |
+| Data layer | `interim` |
+| File format | Excel workbook (`.xlsx`) |
+| Sheet | `tableData` |
+| Observation unit | One manually collected policy record |
+| Current shape | 4642 rows x 11 columns |
+| Geographic coverage | `国家` plus 32 local source labels; Xinjiang is split into `新疆维吾尔自治区` and `新疆生产建设兵团` |
+| Date coverage in file | 2020-01-02 through 2026-04-30 |
+| Current 2020-2025 window count | 4475 rows |
+| Quality report | `outputs/manual_policy_all_keyword_srdi_quality_report.csv` |
+| Coverage table | `outputs/manual_policy_all_keyword_srdi_province_year_counts.csv` |
+| Main use | Policy-text mining and downstream policy-intensity construction for SRDI-related policies |
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `序号` | string / integer-like | Row number from the manual collection workbook. |
+| `所属省份` | string / category | Source jurisdiction label, including `国家` for central policies. |
+| `地区名称` | string | More specific region or source-side area name when available. |
+| `发文日期` | date-like string | Publication date. Dates parse cleanly in the current workbook. |
+| `关键词数量清单` | string / JSON-like | Keyword count metadata. All current rows contain `专精特新`. |
+| `关键词总数量` | integer-like string | Total keyword hit count retained from collection metadata. |
+| `标题` | string | Policy title. Duplicate titles can occur across jurisdictions or reposts, so do not treat title alone as a stable ID. |
+| `文号` | string | Document number when available. Missingness is expected for many local pages. |
+| `发文机构` | string | Issuing agency when available. Missingness must be handled before modeling. |
+| `原文链接` | string / URL | Original source URL. Current inspect found no missing or duplicate URLs. |
+| `摘要` | string | Source-side or collected abstract text. Most rows contain the visible `专精特新` keyword hit here. |
+
+Initial inspect notes:
+
+- `原文链接` has no missing values and no duplicates in the current workbook.
+- `发文日期` has no missing or unparseable values.
+- 167 records are dated 2026. If the analysis window remains 2020-2025, filter
+  those rows before constructing paper tables or DID-facing policy intensity.
+- 20 records do not show `专精特新` in `标题` or `摘要`, but their
+  `关键词数量清单` still records a `专精特新` hit. Treat them as metadata-backed
+  keyword matches until source text is rechecked.
+
 ### gov.cn XXGK Candidate Queues
 
 Files:
