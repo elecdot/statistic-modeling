@@ -38,6 +38,8 @@ expansion.
 - [x] Review the v0 policy-tool dictionary and inspect no-hit rows. A 30-record
   sample-driven revision is archived in
   `docs/manual-srdi-policy-mining-notes.md`.
+- [x] Build paper-facing descriptive tables and figures in
+  `notebooks/41_manual_srdi_descriptive_analysis.py`.
 - [ ] Decide whether to freeze the current title/abstract dictionary features
   as v0 paper-facing proxy variables.
 - [ ] Decide whether title/abstract-only evidence is enough for the paper's
