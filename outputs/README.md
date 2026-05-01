@@ -16,3 +16,15 @@ Most generated outputs should stay out of Git.
   coverage counts for the same manual workbook.
 - `manual_policy_srdi_processed_v0_quality_report.csv`: QA summary for the
   processed manual SRDI policy-record table and province-year intensity table.
+- `manual_policy_srdi_text_mining_v0_quality_report.csv`: QA summary for the
+  manual SRDI title/abstract text-mining v0 feature outputs.
+- `manual_policy_srdi_tool_dictionary_v0.csv`: transparent v0 dictionary used
+  to build supply, demand, and environment policy-tool text features.
+- `manual_policy_srdi_tool_dictionary_coverage_v0.csv`: term-level coverage
+  counts for reviewing the v0 dictionary.
+- `manual_policy_srdi_no_tool_hit_records_v0.csv`: all records without a v0
+  policy-tool dictionary hit.
+- `manual_policy_srdi_no_tool_hit_review_sample_v0.csv`: deterministic no-hit
+  review sample, 10 rows per year.
+- `manual_policy_srdi_no_tool_hit_summary_v0.csv`: no-hit counts by year and
+  province.

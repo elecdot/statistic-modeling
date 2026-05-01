@@ -31,10 +31,13 @@ expansion.
   `data/processed/manual_policy_srdi_policy_records_v0.csv`.
 - [x] Build the DID-facing province-year policy-intensity candidate:
   `data/processed/province_year_srdi_policy_intensity_v0.csv`.
-- [ ] Build the first text-mining feature notebook from the manual processed
+- [x] Build the first text-mining feature notebook from the manual processed
   records. Start with title/abstract keyword features, publication-year trends,
   province distribution, central/local comparison, and simple policy-tool
   dictionary checks.
+- [ ] Review the v0 policy-tool dictionary in
+  `outputs/manual_policy_srdi_tool_dictionary_v0.csv` and inspect no-hit rows
+  before treating supply/demand/environment features as paper-facing labels.
 - [ ] Decide whether title/abstract-only evidence is enough for the paper's
   text-mining claims, or whether selected full-text retrieval is needed.
 - [ ] Link `province_year_srdi_policy_intensity_v0.csv` to the downstream

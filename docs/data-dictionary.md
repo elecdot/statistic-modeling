@@ -171,6 +171,121 @@ Long-form quality report for the manual SRDI processed v0 outputs. Key metrics:
 - `intensity_records=186`
 - `xinjiang_processed_records=47`
 
+### `data/processed/manual_policy_srdi_text_features_v0.csv`
+
+Row-level text-mining features built from
+`data/processed/manual_policy_srdi_policy_records_v0.csv` in
+`notebooks/40_manual_srdi_text_mining.py`. This v0 feature table uses title and
+abstract text only. The policy-tool categories are transparent dictionary
+features and require review before being interpreted as final manual policy
+instrument labels.
+
+| Item | Value |
+| --- | --- |
+| Data layer | `processed` |
+| Observation unit | One processed manual SRDI policy record |
+| Current shape | 4475 rows x 31 columns |
+| Text surface | `title` + `abstract` |
+| Method | Substring dictionary |
+| Generator | `notebooks/40_manual_srdi_text_mining.py` |
+| Quality report | `outputs/manual_policy_srdi_text_mining_v0_quality_report.csv` |
+
+Key fields:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `policy_id` | string | Stable policy ID inherited from processed manual records. |
+| `province` | string / category | `central` or local province unit; Xinjiang source labels are merged into `新疆`. |
+| `publish_year` | integer | Publication year. |
+| `title_len` | integer | Character length of title. |
+| `abstract_len` | integer | Character length of abstract. |
+| `text_surface_len` | integer | Character length of title plus abstract separator. |
+| `srdi_hit_count` | integer | Count of `专精特新` hits in title + abstract. |
+| `little_giant_hit_count` | integer | Count of `小巨人` hits in title + abstract. |
+| `sme_hit_count` | integer | Count of `中小企业` hits in title + abstract. |
+| `supply_tool_hit_count` | integer | Count of supply-side dictionary term hits. |
+| `has_supply_tool` | boolean | Whether any supply-side dictionary term appears. |
+| `supply_matched_terms` | string | Semicolon-separated matched supply-side terms. |
+| `demand_tool_hit_count` | integer | Count of demand-side dictionary term hits. |
+| `has_demand_tool` | boolean | Whether any demand-side dictionary term appears. |
+| `demand_matched_terms` | string | Semicolon-separated matched demand-side terms. |
+| `environment_tool_hit_count` | integer | Count of environment-side dictionary term hits. |
+| `has_environment_tool` | boolean | Whether any environment-side dictionary term appears. |
+| `environment_matched_terms` | string | Semicolon-separated matched environment-side terms. |
+| `policy_tool_category_count` | integer | Number of policy-tool categories hit by the row. |
+| `has_any_policy_tool` | boolean | Whether any v0 tool category is hit. |
+| `policy_tool_mix` | string | Semicolon-separated category mix among `supply`, `demand`, and `environment`. |
+
+### `data/processed/province_year_srdi_text_features_v0.csv`
+
+Province-year aggregate text feature table. It joins
+`data/processed/province_year_srdi_policy_intensity_v0.csv` with aggregates
+from `data/processed/manual_policy_srdi_text_features_v0.csv`.
+
+| Item | Value |
+| --- | --- |
+| Data layer | `processed` |
+| Observation unit | One local province unit-year |
+| Current shape | 186 rows x 24 columns |
+| Geographic units | 31 local province units |
+| Date scope | 2020-2025 |
+| Excludes | `central` records |
+| Generator | `notebooks/40_manual_srdi_text_mining.py` |
+| Quality report | `outputs/manual_policy_srdi_text_mining_v0_quality_report.csv` |
+
+Additional text-feature fields beyond
+`province_year_srdi_policy_intensity_v0.csv`:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `text_feature_policy_records` | integer | Number of local policy rows used for text features in the province-year. |
+| `avg_text_surface_len` | float | Average title + abstract length. |
+| `total_srdi_hit_count` | integer | Total `专精特新` hits. |
+| `total_little_giant_hit_count` | integer | Total `小巨人` hits. |
+| `total_sme_hit_count` | integer | Total `中小企业` hits. |
+| `supply_tool_policy_count` | integer | Count of policies with supply-side dictionary hits. |
+| `demand_tool_policy_count` | integer | Count of policies with demand-side dictionary hits. |
+| `environment_tool_policy_count` | integer | Count of policies with environment-side dictionary hits. |
+| `any_tool_policy_count` | integer | Count of policies with at least one v0 tool-category hit. |
+| `avg_tool_category_count` | float | Average number of v0 tool categories hit by policies in the province-year. |
+| `supply_tool_policy_share` | float | `supply_tool_policy_count / srdi_policy_count`, zero when no policies. |
+| `demand_tool_policy_share` | float | `demand_tool_policy_count / srdi_policy_count`, zero when no policies. |
+| `environment_tool_policy_share` | float | `environment_tool_policy_count / srdi_policy_count`, zero when no policies. |
+
+### `outputs/manual_policy_srdi_tool_dictionary_v0.csv`
+
+Dictionary codebook used by `notebooks/40_manual_srdi_text_mining.py`.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `category` | string | One of `supply`, `demand`, or `environment`. |
+| `term` | string | Chinese substring matched against title + abstract text. |
+
+Related review artifacts:
+
+- `outputs/manual_policy_srdi_tool_dictionary_coverage_v0.csv`: term-level
+  `records_hit` and `total_hits` counts. Current inspect finds no zero-coverage
+  dictionary terms.
+- `outputs/manual_policy_srdi_no_tool_hit_records_v0.csv`: all 352 rows with no
+  v0 supply/demand/environment dictionary hit, including title and abstract for
+  manual review.
+- `outputs/manual_policy_srdi_no_tool_hit_review_sample_v0.csv`: deterministic
+  60-row review sample, 10 no-hit records per year.
+- `outputs/manual_policy_srdi_no_tool_hit_summary_v0.csv`: no-hit counts by
+  year and province.
+
+### `outputs/manual_policy_srdi_text_mining_v0_quality_report.csv`
+
+Long-form QA report for manual SRDI text-mining v0 outputs. Current key
+metrics:
+
+- `row_feature_records=4475`
+- `province_year_feature_records=186`
+- `policy_records_with_any_tool_hit=4123`
+- `policy_records_without_tool_hit=352`
+- `no_tool_hit_review_sample_records=60`
+- `dictionary_terms=53`
+
 ### gov.cn XXGK Candidate Queues
 
 Files:
