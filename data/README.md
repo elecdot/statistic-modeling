@@ -24,7 +24,7 @@ Required columns:
 | `source_type` | Artifact type, such as `html`, `api-json`, `html-detail`, `interim-derived`, or `manual-collection`. |
 | `url_or_origin` | External URL, API endpoint, upstream local file, or manual origin. |
 | `access_date` | Collection or registration date. |
-| `local_file` | Path relative to `data/`; grouped globs are allowed for raw crawl artifacts. |
+| `local_file` | Path relative to `data/`; grouped globs are allowed for raw crawl artifacts. Use `../outputs/...` only for standalone quality-report rows. |
 | `generated_by` | Script, notebook, or manual process that produced the artifact. |
 | `config_files` | Config files used by the run, separated with `;` when needed. |
 | `upstream_files` | Local inputs used to derive the artifact, separated with `;` when needed. |

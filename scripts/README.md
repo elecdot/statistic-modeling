@@ -20,3 +20,15 @@ live collection.
 
 `govcn_xxgk_processed_corpus.py` builds the reviewed processed all-policy
 corpus v0 from cached interim detail records. It does not send network requests.
+
+## Manual SRDI Workbook
+
+`manual_srdi_processed_corpus.py` builds processed policy records and a
+province-year policy-intensity table from
+`data/interim/manual_policy_all_keyword_srdi.xlsx`. Prefer:
+
+```bash
+just manual-srdi-processed-v0
+```
+
+This command does not send network requests.

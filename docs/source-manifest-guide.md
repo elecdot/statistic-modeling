@@ -13,7 +13,7 @@ produced it.
 | `source_type` | Artifact type, such as `html`, `api-json`, `html-detail`, `interim-derived`, or `manual-collection`. |
 | `url_or_origin` | External URL, API endpoint, upstream local artifact, or manual origin. |
 | `access_date` | Collection or registration date. Current rows use `YYYY-M-D`. |
-| `local_file` | Path under `data/`, without the leading `data/`. Globs are allowed for grouped raw artifacts. |
+| `local_file` | Path under `data/`, without the leading `data/`. Globs are allowed for grouped raw artifacts. For report-only rows stored outside `data/`, use an explicit relative path such as `../outputs/example.csv`. |
 | `generated_by` | Script, notebook, or manual process that produced the artifact. |
 | `config_files` | Config files used by the run, separated with `;` when there is more than one. |
 | `upstream_files` | Local input artifacts used to derive this artifact, separated with `;` when there is more than one. |
@@ -32,7 +32,7 @@ produced it.
 - Put run configuration in `config_files`, for example `configs/govcn_xxgk_sources.toml;configs/govcn_xxgk_all_query_batches.csv`.
 - Put local data dependencies in `upstream_files`.
 - Keep `url_or_origin` for the external URL, API endpoint, manual origin, or a compact human-readable upstream description.
-- Keep `local_file` relative to `data/`.
+- Keep `local_file` relative to `data/`; use `../outputs/...` only for quality-report rows that are intentionally registered as standalone artifacts.
 - Register a new row when the artifact's meaning or generation config changes.
 - Use `collection_status=partial` and `review_status=needs_review` when the artifact is usable but has retained failures or review rows.
 

@@ -32,3 +32,7 @@ govcn-xxgk-all-full:
 # Build the reviewed central all-policy processed text corpus v0.
 govcn-xxgk-processed-v0:
     UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/govcn_xxgk_processed_corpus.py
+
+# Build processed records and province-year intensity from the manual SRDI workbook.
+manual-srdi-processed-v0:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_processed_corpus.py

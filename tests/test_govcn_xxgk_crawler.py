@@ -19,6 +19,12 @@ from statistic_modeling.policy_text_crawler.govcn_xxgk_processed import (
 	build_processed_quality_report,
 	build_processed_v0,
 )
+from statistic_modeling.policy_text_crawler.manual_srdi_processed import (
+	build_manual_policy_records_v0,
+	build_manual_processed_quality_report,
+	build_province_year_intensity_v0,
+	stable_policy_id,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -143,6 +149,95 @@ def test_processed_v0_applies_manual_review_rule() -> None:
 	assert "rows_with_inline_attachment_titles" not in quality_report.index
 
 
+def test_manual_srdi_processed_v0_standardizes_window_and_province_units() -> None:
+	raw = pd.DataFrame(
+		[
+			{
+				"序号": "1",
+				"所属省份": "国家",
+				"地区名称": "国家",
+				"发文日期": "2025-01-01",
+				"关键词数量清单": '{"专精特新": 2}',
+				"关键词总数量": "2",
+				"标题": "专精特新政策",
+				"文号": "",
+				"发文机构": "",
+				"原文链接": "https://example.com/central",
+				"摘要": "中央专精特新摘要",
+			},
+			{
+				"序号": "2",
+				"所属省份": "新疆维吾尔自治区",
+				"地区名称": "新疆",
+				"发文日期": "2024-01-01",
+				"关键词数量清单": '{"专精特新": 1}',
+				"关键词总数量": "1",
+				"标题": "地方政策",
+				"文号": "",
+				"发文机构": "工信厅",
+				"原文链接": "https://example.com/xj-region",
+				"摘要": "摘要含专精特新",
+			},
+			{
+				"序号": "3",
+				"所属省份": "新疆生产建设兵团",
+				"地区名称": "兵团",
+				"发文日期": "2023-01-01",
+				"关键词数量清单": '{"专精特新": 3}',
+				"关键词总数量": "3",
+				"标题": "兵团政策",
+				"文号": "兵工信",
+				"发文机构": "兵团工信局",
+				"原文链接": "https://example.com/xj-bingtuan",
+				"摘要": "专精特新摘要",
+			},
+			{
+				"序号": "4",
+				"所属省份": "广东省",
+				"地区名称": "广东",
+				"发文日期": "2026-01-01",
+				"关键词数量清单": '{"专精特新": 1}',
+				"关键词总数量": "1",
+				"标题": "2026政策",
+				"文号": "",
+				"发文机构": "工信厅",
+				"原文链接": "https://example.com/out-of-window",
+				"摘要": "专精特新摘要",
+			},
+		]
+	)
+
+	processed = build_manual_policy_records_v0(raw)
+
+	assert len(processed) == 3
+	assert processed.loc[processed["source_label_original"].eq("国家"), "province"].item() == "central"
+	assert set(processed.loc[processed["source_label_original"].str.contains("新疆"), "province"]) == {"新疆"}
+	assert set(processed["publish_year"]) == {2023, 2024, 2025}
+	assert set(processed["review_status"]) == {"accepted"}
+	assert processed.loc[processed["source_url"].eq("https://example.com/central"), "policy_id"].item() == stable_policy_id(
+		"https://example.com/central"
+	)
+
+
+def test_manual_srdi_intensity_excludes_central_and_balances_years() -> None:
+	raw = pd.read_excel(ROOT / "data" / "interim" / "manual_policy_all_keyword_srdi.xlsx", sheet_name="tableData", dtype=str)
+	processed = build_manual_policy_records_v0(raw)
+	intensity = build_province_year_intensity_v0(processed)
+	quality_report = build_manual_processed_quality_report(raw, processed, intensity).set_index("metric")
+
+	assert len(processed) == 4475
+	assert processed["source_url"].is_unique
+	assert "central" in set(processed["province"])
+	assert processed.loc[processed["source_label_original"].isin(["新疆维吾尔自治区", "新疆生产建设兵团"]), "province"].eq("新疆").all()
+	assert len(intensity) == 186
+	assert set(intensity["publish_year"]) == {2020, 2021, 2022, 2023, 2024, 2025}
+	assert intensity["province"].nunique() == 31
+	assert "central" not in set(intensity["province"])
+	assert "新疆" in set(intensity["province"])
+	assert quality_report.loc["excluded_outside_analysis_window", "value"] == 167
+	assert quality_report.loc["local_province_units", "value"] == 31
+
+
 def test_target_date_window_flags_out_of_scope_rows() -> None:
 	config = load_source_config(ROOT / "configs" / "govcn_xxgk_sources.toml")
 	details = pd.DataFrame(
@@ -201,7 +296,7 @@ def test_candidate_window_filter_and_provenance_aggregation() -> None:
 
 def test_source_manifest_globs_do_not_mix_srdi_and_all_policy_cache() -> None:
 	manifest = pd.read_csv(ROOT / "data" / "source-manifest.csv").fillna("")
-	assert len(manifest) == 13
+	assert len(manifest) == 17
 	assert {
 		"generated_by",
 		"config_files",

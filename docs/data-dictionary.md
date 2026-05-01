@@ -91,6 +91,86 @@ Initial inspect notes:
   `关键词数量清单` still records a `专精特新` hit. Treat them as metadata-backed
   keyword matches until source text is rechecked.
 
+### `data/processed/manual_policy_srdi_policy_records_v0.csv`
+
+Processed policy-record table derived from
+`data/interim/manual_policy_all_keyword_srdi.xlsx`. This is the first stable
+record-level input for the manual SRDI policy-mining path.
+
+| Item | Value |
+| --- | --- |
+| Data layer | `processed` |
+| Observation unit | One manually collected SRDI-related policy record |
+| Current shape | 4475 rows x 20 columns |
+| Date scope | 2020-2025 |
+| Source URL uniqueness | Unique `source_url` |
+| Generator | `scripts/manual_srdi_processed_corpus.py` |
+| Quality report | `outputs/manual_policy_srdi_processed_v0_quality_report.csv` |
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `policy_id` | string | Stable ID derived from `source_url`. |
+| `province` | string / category | Analysis unit. `国家` is mapped to `central`; `新疆维吾尔自治区` and `新疆生产建设兵团` are mapped to `新疆`. |
+| `source_label_original` | string | Original `所属省份` value from the workbook. Use this to audit province normalization. |
+| `jurisdiction_type` | string / category | `central` or `local`. |
+| `region_name` | string | Original `地区名称`. |
+| `publish_date` | date-like string | Publication date. |
+| `publish_year` | integer | Year derived from `publish_date`. |
+| `keyword_hit` | string | Fixed to `专精特新` for this processed v0. |
+| `keyword_count` | integer | Numeric keyword hit count parsed from `关键词总数量`. |
+| `keyword_count_raw` | string | Original keyword hit count value. |
+| `title` | string | Policy title. |
+| `document_number` | string | Policy document number when available. |
+| `agency` | string | Issuing agency when available. |
+| `source_url` | string / URL | Original source URL; unique in processed v0. |
+| `abstract` | string | Collected abstract text. |
+| `title_contains_srdi` | boolean | Whether `title` contains `专精特新`. |
+| `abstract_contains_srdi` | boolean | Whether `abstract` contains `专精特新`. |
+| `title_or_abstract_contains_srdi` | boolean | Whether either title or abstract contains `专精特新`. |
+| `in_analysis_window` | boolean | Always `True` in this output; retained for audit. |
+| `review_status` | string | Current processed v0 status; expected `accepted`. |
+
+### `data/processed/province_year_srdi_policy_intensity_v0.csv`
+
+Balanced province-year policy-intensity table derived from
+`data/processed/manual_policy_srdi_policy_records_v0.csv`. It is designed as a
+direct candidate input for DID-side province-year policy-intensity construction.
+
+| Item | Value |
+| --- | --- |
+| Data layer | `processed` |
+| Observation unit | One local province unit-year |
+| Current shape | 186 rows x 11 columns |
+| Date scope | 2020-2025 |
+| Geographic units | 31 local province units; the two Xinjiang source labels are merged into `新疆` |
+| Excludes | `central` records |
+| Generator | `scripts/manual_srdi_processed_corpus.py` |
+| Quality report | `outputs/manual_policy_srdi_processed_v0_quality_report.csv` |
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `province` | string / category | Local province unit used for policy-intensity analysis. |
+| `publish_year` | integer | Calendar year. |
+| `srdi_policy_count` | integer | Count of SRDI keyword policy records in the province-year. |
+| `log_srdi_policy_count_plus1` | float | Natural log of `srdi_policy_count + 1`. |
+| `total_keyword_count` | integer | Sum of `keyword_count` across records in the province-year. |
+| `avg_keyword_count` | float | Mean keyword hit count across records in the province-year; zero for no-policy rows. |
+| `title_contains_srdi_count` | integer | Count of records whose title contains `专精特新`. |
+| `abstract_contains_srdi_count` | integer | Count of records whose abstract contains `专精特新`. |
+| `title_or_abstract_contains_srdi_count` | integer | Count of records with a visible title or abstract keyword hit. |
+| `missing_agency_count` | integer | Count of records without `agency`. |
+| `unique_agency_count` | integer | Distinct non-empty agency count in the province-year. |
+
+### `outputs/manual_policy_srdi_processed_v0_quality_report.csv`
+
+Long-form quality report for the manual SRDI processed v0 outputs. Key metrics:
+
+- `processed_records=4475`
+- `excluded_outside_analysis_window=167`
+- `local_province_units=31`
+- `intensity_records=186`
+- `xinjiang_processed_records=47`
+
 ### gov.cn XXGK Candidate Queues
 
 Files:

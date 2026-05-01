@@ -22,24 +22,23 @@ connect these policy-text corpora to panel construction and causal modeling.
 ## Open Loops
 
 **Current Main Work**:
-We manually collected all policies with keyword "专精特新" cover all
-central/provinces from 2020 to 2025.
+We manually collected policies whose metadata contains the keyword "专精特新"
+from central and provincial sources. The current main path is now based on
+`data/interim/manual_policy_all_keyword_srdi.xlsx`, not continued broad crawler
+expansion.
 
-> Since I have no time to complete data mining step-by-step, put these to-do items aside for now:
->- [ ] Build the first text-mining feature notebook from
->  `data/processed/govcn_xxgk_all_policy_text_corpus_v0.csv`.
->  Start with keyword hits for `专精特新` / `小巨人` / `中小企业`, publication-year
->  trends, official subject category cross-tabs, and text-length diagnostics.
->- [ ] Decide how `official_subject_categories` should be used in modeling.
->  It is a gov.cn-specific source taxonomy and should not be treated as a
->  province-level policy-tool taxonomy without a separate mapping decision.
->- [ ] Decide whether attachment context is needed. If it is, design it as a
->  separate artifact rather than adding exploratory fields to the main processed
->  corpus. NOTE: I prefer not.
->- [ ] Define the province-level source expansion workflow. Start with a source
->  map and feasibility notebook before adding provincial crawler code.
->- [ ] Link central processed corpus outputs to downstream policy-intensity
->  construction and staggered-DID panel requirements.
+- [x] Build processed v0 records from the manual workbook:
+  `data/processed/manual_policy_srdi_policy_records_v0.csv`.
+- [x] Build the DID-facing province-year policy-intensity candidate:
+  `data/processed/province_year_srdi_policy_intensity_v0.csv`.
+- [ ] Build the first text-mining feature notebook from the manual processed
+  records. Start with title/abstract keyword features, publication-year trends,
+  province distribution, central/local comparison, and simple policy-tool
+  dictionary checks.
+- [ ] Decide whether title/abstract-only evidence is enough for the paper's
+  text-mining claims, or whether selected full-text retrieval is needed.
+- [ ] Link `province_year_srdi_policy_intensity_v0.csv` to the downstream
+  staggered-DID panel and finalize province-name compatibility.
 
 ## Documentations
 

@@ -14,3 +14,5 @@ Most generated outputs should stay out of Git.
   for the manually collected national/provincial `专精特新` keyword workbook.
 - `manual_policy_all_keyword_srdi_province_year_counts.csv`: province-year
   coverage counts for the same manual workbook.
+- `manual_policy_srdi_processed_v0_quality_report.csv`: QA summary for the
+  processed manual SRDI policy-record table and province-year intensity table.
