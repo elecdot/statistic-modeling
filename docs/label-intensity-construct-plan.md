@@ -239,7 +239,7 @@ y_other = int(p_other >= 0.6 and max(p_supply, p_demand, p_environment) < 0.4)
 运行前准备：
 
 ```bash
-pip install openai pandas tqdm python-dotenv
+uv add openai pandas tqdm python-dotenv
 ```
 
 环境变量：
@@ -651,7 +651,7 @@ if __name__ == "__main__":
 安装依赖：
 
 ```bash
-pip install torch transformers datasets scikit-learn numpy
+uv add torch transformers datasets scikit-learn numpy
 ```
 
 Hugging Face 的 `Trainer` 是一个完整的 PyTorch 训练与评估循环，可配合 `TrainingArguments` 管理训练参数；这里我们用自定义 Trainer 覆盖损失函数，以便加入 `pos_weight`。([Hugging Face][4]) scikit-learn 的 `f1_score` 支持 multilabel 任务，并可使用 `micro`、`macro`、`samples` 等平均方式。([Scikit-learn][5])
