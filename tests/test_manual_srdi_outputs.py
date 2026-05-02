@@ -223,3 +223,45 @@ def test_manual_srdi_macbert_full_corpus_qa_outputs_are_consistent() -> None:
 		"macbert_dictionary_conflict",
 	}.issubset(set(boundary_samples["review_reason"]))
 	assert decision.loc["current_decision", "status"] == "ready_for_did_v1"
+
+
+def test_manual_srdi_policy_intensity_variable_selection_outputs_are_consistent() -> None:
+	did_variables = pd.read_csv(ROOT / "data" / "processed" / "province_year_srdi_policy_text_variables_v1.csv")
+	variable_selection = pd.read_csv(ROOT / "outputs" / "manual_srdi_policy_intensity_variable_selection_v1.csv")
+	correlations = pd.read_csv(ROOT / "outputs" / "manual_srdi_policy_intensity_variable_correlations_v1.csv")
+	decision = pd.read_csv(ROOT / "outputs" / "manual_srdi_policy_intensity_variable_decision_v1.csv").set_index(
+		"decision_area"
+	)
+
+	main_variables = {
+		"srdi_supply_intensity",
+		"srdi_demand_intensity",
+		"srdi_environment_intensity",
+	}
+	required_columns = {
+		"province",
+		"publish_year",
+		"srdi_policy_count",
+		"srdi_policy_count_log",
+		"srdi_total_tool_intensity",
+		"srdi_valid_tool_policy_share",
+		"srdi_other_exclusion_count",
+		"dict_supply_policy_count",
+		"dict_demand_policy_count",
+		"dict_environment_policy_count",
+	} | main_variables
+
+	assert len(did_variables) == 186
+	assert did_variables["province"].nunique() == 31
+	assert set(did_variables["publish_year"]) == {2020, 2021, 2022, 2023, 2024, 2025}
+	assert did_variables[["province", "publish_year"]].duplicated().sum() == 0
+	assert required_columns.issubset(did_variables.columns)
+	assert (did_variables[list(main_variables)] >= 0).all().all()
+
+	selected_main = set(variable_selection.loc[variable_selection["recommended_use"].eq("main"), "variable"])
+	assert selected_main == main_variables
+	assert len(correlations) == 55
+	assert decision.loc["main_policy_tool_variables", "variables"] == (
+		"srdi_supply_intensity;srdi_demand_intensity;srdi_environment_intensity"
+	)
+	assert "ready for panel merge" in decision.loc["did_handoff_status", "decision"]

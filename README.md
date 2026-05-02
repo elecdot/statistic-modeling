@@ -82,10 +82,16 @@ expansion.
   `notebooks/49_manual_srdi_macbert_full_corpus_qa.py`. Current decision table
   marks the v1 outputs as `ready_for_did_v1`; round-2 labeling is optional after
   boundary-sample review.
+- [x] Fix the main DID-facing policy-text variable口径 in
+  `notebooks/50_manual_srdi_policy_intensity_variable_selection.py`. Main
+  variables are continuous MacBERT probability sums:
+  `srdi_supply_intensity`, `srdi_demand_intensity`, and
+  `srdi_environment_intensity`; policy count, filtered sums, hard-label counts,
+  and dictionary counts are retained as controls or robustness variables.
 - [ ] Review `outputs/manual_srdi_macbert_full_corpus_boundary_samples_v1.csv`
   before final paper freeze, mainly for demand-threshold and `other` boundary
   cases.
-- [ ] Link `province_year_srdi_policy_intensity_v0.csv` to the downstream
+- [ ] Link `province_year_srdi_policy_text_variables_v1.csv` to the downstream
   staggered-DID panel and finalize province-name compatibility.
 
 ## Documentations
