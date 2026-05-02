@@ -47,6 +47,10 @@ expansion.
   `notebooks/43_manual_srdi_text_measure_comparison.py`. Current evidence
   favors full-text v1 as the main aggregate text-intensity proxy, with v0 kept
   as robustness.
+- [x] Build the main full-text descriptive analysis in
+  `notebooks/44_manual_srdi_fulltext_descriptive_analysis.py`.
+- [x] Audit full-text keyword quality and interpretation in
+  `notebooks/45_manual_srdi_fulltext_keyword_quality.py`.
 - [ ] Confirm the paper convention for full-text v1 interpretation: use
   province-year aggregate intensity proxies, avoid treating row-level dictionary
   hits as final manual policy-tool labels.

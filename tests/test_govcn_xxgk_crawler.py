@@ -470,6 +470,54 @@ def test_manual_srdi_text_measure_comparison_outputs_are_consistent() -> None:
 	assert recommendation.loc[recommendation["decision_area"].eq("main_text_measure"), "recommendation"].str.contains("full-text v1").item()
 
 
+def test_manual_srdi_fulltext_descriptive_outputs_are_consistent() -> None:
+	year_trend = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_year_trend.csv")
+	province_distribution = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_province_distribution.csv")
+	tool_summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_tool_category_summary.csv")
+	tool_shares_by_year = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_tool_shares_by_year.csv")
+	heatmap_matrix = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_policy_intensity_heatmap_matrix.csv", index_col=0)
+	tool_share_by_province = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_tool_share_by_province.csv")
+	central_local = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_central_local_comparison.csv")
+	no_hit_summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_no_hit_summary.csv")
+	high_coverage_terms = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_high_coverage_terms.csv")
+
+	assert year_trend["publish_year"].tolist() == [2020, 2021, 2022, 2023, 2024, 2025]
+	assert len(province_distribution) == 31
+	assert set(tool_summary["tool_category"]) == {"supply", "demand", "environment", "any_tool"}
+	assert len(tool_shares_by_year) == 6
+	assert heatmap_matrix.shape == (31, 6)
+	assert len(tool_share_by_province) == 31
+	assert sorted(central_local["jurisdiction_type"].tolist()) == ["central", "local"]
+	assert no_hit_summary.loc[no_hit_summary["summary_type"].eq("year"), "no_tool_policy_count"].sum() == 2
+	assert len(high_coverage_terms) == 41
+
+
+def test_manual_srdi_fulltext_keyword_quality_outputs_are_consistent() -> None:
+	summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_keyword_quality_summary_v1.csv").set_index("metric")
+	term_flags = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_keyword_quality_term_flags_v1.csv")
+	category_overlap = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_keyword_quality_category_overlap_v1.csv").set_index("group")
+	category_comparison = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_keyword_quality_category_comparison_v1.csv").set_index("category")
+	interpretation_notes = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_keyword_quality_interpretation_notes_v1.csv")
+
+	assert summary.loc["dictionary_terms", "value"] == 85
+	assert summary.loc["saturated_terms_gte_80pct", "value"] == 2
+	assert summary.loc["high_coverage_terms_gte_50pct", "value"] == 15
+	assert summary.loc["moderate_plus_terms_gte_25pct", "value"] == 41
+	assert len(term_flags) == 85
+	assert term_flags["interpretation_role"].eq("broad_intensity_signal").sum() == 15
+	assert category_overlap.loc["no_tool", "records"] == 2
+	assert category_overlap.loc["all_three_categories", "records"] == 3924
+	assert category_comparison.loc["supply", "record_hit_share"] > 0.99
+	assert category_comparison.loc["environment", "record_hit_share"] > 0.98
+	assert category_comparison.loc["demand", "record_hit_share"] > 0.88
+	assert set(interpretation_notes["topic"]) == {
+		"why_supply_environment_near_any",
+		"why_demand_rises",
+		"very_high_coverage_terms",
+		"modeling_implication",
+	}
+
+
 def test_legacy_cache_fallback_is_first_page_only() -> None:
 	config = load_source_config(ROOT / "configs" / "govcn_xxgk_sources.toml")
 	batch = next(

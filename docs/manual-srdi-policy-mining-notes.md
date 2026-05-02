@@ -206,6 +206,61 @@ robustness or method-comparison measure because full-text terms can become
 broad and highly saturated. In paper language, v1 should be presented as an
 aggregate text-intensity proxy rather than a precise row-level instrument label.
 
+## Full-Text Descriptive Analysis
+
+The full-text descriptive notebook is
+`notebooks/44_manual_srdi_fulltext_descriptive_analysis.py`.
+
+It produces the main paper-facing descriptive tables and figures under the
+full-text v1 axis, including annual policy counts, province distribution,
+full-text tool shares by year, province-year policy-intensity heatmap,
+province-level tool structure, central/local comparison, no-hit summary, and
+high-coverage dictionary terms.
+
+Current descriptive diagnostics:
+
+- annual trend covers 2020-2025;
+- local province distribution covers 31 province units;
+- province-year policy-intensity matrix is 31 x 6;
+- full-text no-hit records total 2;
+- high-coverage full-text dictionary terms total 41.
+
+## Full-Text Keyword Quality Interpretation
+
+The full-text keyword quality notebook is
+`notebooks/45_manual_srdi_fulltext_keyword_quality.py`.
+
+Current keyword-quality diagnostics:
+
+- dictionary terms: 85;
+- saturated terms, hitting at least 80% of records: 2;
+- high-coverage terms, hitting at least 50% of records: 15;
+- moderate-or-higher terms, hitting at least 25% of records: 41;
+- rare terms, hitting fewer than 5% of records: 15;
+- broad-meaning terms flagged by rule: 24;
+- broad-intensity signal terms: 15;
+- no-tool records: 2.
+
+Category-level diagnostics:
+
+- any-tool hit share: 0.9996;
+- supply hit share: 0.9937;
+- environment hit share: 0.9853;
+- demand hit share: 0.8851;
+- all-three-category hit share: 0.8769.
+
+These results explain why supply and environment nearly coincide with the
+any-tool indicator, and why demand rises sharply under full-text matching. In
+full policy text, broad innovation, funding, platform, financial, standard,
+recognition, ecosystem, matching, scenario, export, and procurement language
+often appears in implementation clauses even when titles and abstracts are
+narrower.
+
+The paper-facing interpretation should therefore emphasize province-year
+aggregate intensity and orientation proxies. It should avoid claiming that a
+single row-level hit is a final manual label or that supply, demand, and
+environment are mutually exclusive full-text classifications.
+
 ## Paper Drafting Notes
 
 Potential data-source wording:
