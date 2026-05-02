@@ -67,8 +67,13 @@ expansion.
   `notebooks/48_manual_srdi_macbert_training_data.py`: deterministic
   train/validation/test JSONL files, label-balance QA, and `pos_weight`
   candidates.
-- [ ] Implement the MacBERT training script and evaluate validation/test
-  multi-label metrics before predicting the full 4,475-document corpus.
+- [x] Implement the MacBERT training script in
+  `scripts/manual_srdi_train_macbert_multilabel.py`, with dry-run validation,
+  explicit PyTorch training loop, validation/test metrics, model checkpoint
+  output, and test-set predictions.
+- [ ] Run the live MacBERT training command after model-download access is
+  available, then review validation/test multi-label metrics before predicting
+  the full 4,475-document corpus.
 - [ ] Link `province_year_srdi_policy_intensity_v0.csv` to the downstream
   staggered-DID panel and finalize province-name compatibility.
 

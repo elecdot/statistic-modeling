@@ -83,3 +83,41 @@ When cached responses are parsed with `--resume`, the parser reads
 `message.content` first. If a DeepSeek response has empty `message.content` but
 contains the requested JSON object in `reasoning_content`, the script uses that
 as a conservative fallback without modifying the raw cache file.
+
+`manual_srdi_train_macbert_multilabel.py` trains the first MacBERT multi-label
+classifier from the JSONL split prepared by
+`notebooks/48_manual_srdi_macbert_training_data.py`.
+
+Validate inputs without loading the model:
+
+```bash
+just manual-srdi-macbert-train-dry-run
+```
+
+The live training command uses the project-declared `torch` and `transformers`
+dependencies and requires access to download `hfl/chinese-macbert-base` unless
+it is already cached:
+
+```bash
+just manual-srdi-macbert-train
+```
+
+The live recipe passes `--resume`. At each completed epoch, the script writes a
+checkpoint under `outputs/manual_srdi_macbert_multilabel_v1/checkpoints/` and
+updates the metrics CSV. If training is interrupted, rerun the same command; it
+continues from the latest completed epoch rather than starting from scratch.
+Progress and failures are logged to
+`outputs/manual_srdi_macbert_multilabel_train_v1.log`.
+
+Hugging Face download progress bars and advisory model-loading messages are
+suppressed by default so run logs stay readable. Pass `--show-download-progress`
+when debugging model downloads. For remote checkpoints, the script requests
+PyTorch weights to avoid the non-fatal safetensors auto-conversion thread that
+can emit repository-discussion 403 messages for this checkpoint. Safetensors-only
+local checkpoints remain supported for smoke tests.
+
+The script writes the model checkpoint to
+`outputs/manual_srdi_macbert_multilabel_v1/`, validation/test metrics to
+`outputs/manual_srdi_macbert_multilabel_metrics_v1.csv`, test predictions to
+`outputs/manual_srdi_macbert_multilabel_test_predictions_v1.csv`, and run QA to
+`outputs/manual_srdi_macbert_multilabel_quality_report_v1.csv`.

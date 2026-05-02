@@ -48,3 +48,11 @@ manual-srdi-deepseek-round1-dry-run:
 # Run DeepSeek round-1 labeling. Requires DEEPSEEK_API_KEY in the shell.
 manual-srdi-deepseek-round1:
     UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_deepseek_round1_label.py --resume --workers 3 --max-retries 2
+
+# Validate MacBERT training inputs without loading a model.
+manual-srdi-macbert-train-dry-run:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_train_macbert_multilabel.py --dry-run
+
+# Train the first MacBERT multi-label classifier. Requires torch, transformers, and model download access.
+manual-srdi-macbert-train:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_train_macbert_multilabel.py --resume
