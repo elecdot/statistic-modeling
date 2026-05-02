@@ -56,8 +56,14 @@ expansion.
 - [x] Build the DeepSeek round-1 labeling command in
   `scripts/manual_srdi_deepseek_round1_label.py`; use dry-run first, then live
   run with `DEEPSEEK_API_KEY` exported in the shell.
-- [ ] Run the live DeepSeek round-1 labeling and review
-  `data/interim/manual_policy_srdi_deepseek_labels_round1_v1.csv`, following
+- [x] Run the live DeepSeek round-1 labeling and review its artifact readiness
+  in `notebooks/47_manual_srdi_deepseek_round1_qa.py`. The run produced 800
+  label rows and 800 raw JSON cache files; the first QA pass identified one
+  parser-level repair case.
+- [x] Repair the single failed DeepSeek label via cached-response parsing
+  fallback, then rerun round-1 QA. Current QA reports 800 successful labels,
+  zero failed labels, and `enter_macbert_training_preparation`.
+- [ ] Enter the MacBERT training-data preparation path in
   `docs/label-intensity-construct-plan.md`.
 - [ ] Link `province_year_srdi_policy_intensity_v0.csv` to the downstream
   staggered-DID panel and finalize province-name compatibility.

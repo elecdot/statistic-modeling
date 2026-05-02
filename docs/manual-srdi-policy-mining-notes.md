@@ -32,12 +32,19 @@ The current sample rules are:
 - map `国家` to `province=central`;
 - map `新疆维吾尔自治区` and `新疆生产建设兵团` to `province=新疆`;
 - preserve the original source label in `source_label_original`;
+- apply reviewed jurisdiction overrides from
+  `configs/manual_srdi_jurisdiction_overrides_v1.csv` when a source site
+  reposts another province's policy;
 - keep central records in the row-level policy table;
 - exclude central records from province-year intensity tables.
 
 The processed row-level table contains 4475 records. The province-year
 intensity table, `data/processed/province_year_srdi_policy_intensity_v0.csv`,
 contains 186 rows, corresponding to 31 local province units across 2020-2025.
+The current jurisdiction override table contains 15 reviewed repost corrections.
+For example, a record collected from `信用中国（北京）` with a Shanghai policy
+title is corrected from `province=北京市` to `province=上海市`, while
+`province_before_correction` preserves the original mapped value.
 
 ## Artifact Chain
 

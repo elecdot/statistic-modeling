@@ -14,10 +14,13 @@ files, command arguments, notebooks, or committed docs.
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import hashlib
 import json
+import logging
 import os
 import re
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -34,10 +37,12 @@ DEFAULT_INPUT = ROOT / "data" / "interim" / "manual_policy_srdi_deepseek_sample_
 DEFAULT_RAW_DIR = ROOT / "data" / "raw" / "json" / "manual_srdi_deepseek_round1_v1"
 DEFAULT_LABELS_OUTPUT = ROOT / "data" / "interim" / "manual_policy_srdi_deepseek_labels_round1_v1.csv"
 DEFAULT_QUALITY_OUTPUT = ROOT / "outputs" / "manual_policy_srdi_deepseek_round1_quality_report_v1.csv"
+DEFAULT_LOG_OUTPUT = ROOT / "outputs" / "manual_policy_srdi_deepseek_round1_run_log_v1.log"
 
 DEFAULT_BASE_URL = "https://api.deepseek.com"
 DEFAULT_MODEL = "deepseek-v4-pro"
 DEFAULT_RANDOM_STATE = 42
+DEFAULT_PROGRESS_INTERVAL = 10
 
 REQUIRED_INPUT_COLUMNS = {
 	"doc_id",
@@ -55,6 +60,14 @@ PROBABILITY_FIELDS = ("p_supply", "p_demand", "p_environment", "p_other")
 EVIDENCE_FIELDS = ("supply_evidence", "demand_evidence", "environment_evidence")
 
 
+class DeepSeekRequestError(RuntimeError):
+	"""Request error with retry metadata for DeepSeek API calls."""
+
+	def __init__(self, message: str, *, retryable: bool) -> None:
+		super().__init__(message)
+		self.retryable = retryable
+
+
 def parse_args() -> argparse.Namespace:
 	parser = argparse.ArgumentParser(description=__doc__)
 	parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
@@ -67,10 +80,34 @@ def parse_args() -> argparse.Namespace:
 	parser.add_argument("--max-text-chars", type=int, default=12000)
 	parser.add_argument("--sleep-seconds", type=float, default=0.5)
 	parser.add_argument("--timeout-seconds", type=float, default=90.0)
+	parser.add_argument("--workers", type=int, default=1, help="Number of concurrent labeling workers.")
+	parser.add_argument("--max-retries", type=int, default=2, help="Retries for retryable API failures.")
+	parser.add_argument("--retry-sleep-seconds", type=float, default=3.0, help="Base sleep between retry attempts.")
+	parser.add_argument("--progress-interval", type=int, default=DEFAULT_PROGRESS_INTERVAL)
+	parser.add_argument("--log-output", type=Path, default=DEFAULT_LOG_OUTPUT)
 	parser.add_argument("--resume", action="store_true", help="Reuse cached raw JSON responses when present.")
 	parser.add_argument("--dry-run", action="store_true", help="Validate prompts and outputs without API calls.")
 	parser.add_argument("--fail-fast", action="store_true", help="Stop at the first API or parse failure.")
 	return parser.parse_args()
+
+
+def setup_logger(log_output: Path) -> logging.Logger:
+	"""Create a run logger that writes to console and file."""
+	logger = logging.getLogger("manual_srdi_deepseek_round1_label")
+	logger.setLevel(logging.INFO)
+	logger.handlers.clear()
+	logger.propagate = False
+
+	formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+	stream_handler = logging.StreamHandler(sys.stdout)
+	stream_handler.setFormatter(formatter)
+	logger.addHandler(stream_handler)
+
+	log_output.parent.mkdir(parents=True, exist_ok=True)
+	file_handler = logging.FileHandler(log_output, encoding="utf-8")
+	file_handler.setFormatter(formatter)
+	logger.addHandler(file_handler)
+	return logger
 
 
 def utc_now_iso() -> str:
@@ -83,6 +120,14 @@ def stable_text_hash(value: str) -> str:
 
 def safe_doc_id(value: str) -> str:
 	return re.sub(r"[^0-9A-Za-z_-]+", "_", str(value)).strip("_")[:120]
+
+
+def display_path(path: Path) -> str:
+	"""Return a readable path, relative to workspace when possible."""
+	try:
+		return str(path.relative_to(ROOT))
+	except ValueError:
+		return str(path)
 
 
 def validate_input_columns(frame: pd.DataFrame) -> None:
@@ -188,22 +233,77 @@ def post_chat_completion(
 			body = response.read().decode("utf-8")
 	except urllib.error.HTTPError as exc:
 		error_body = exc.read().decode("utf-8", errors="replace")
-		raise RuntimeError(f"DeepSeek HTTP {exc.code}: {error_body[:500]}") from exc
+		retryable = exc.code in {408, 409, 425, 429} or 500 <= exc.code < 600
+		raise DeepSeekRequestError(f"DeepSeek HTTP {exc.code}: {error_body[:500]}", retryable=retryable) from exc
 	except urllib.error.URLError as exc:
-		raise RuntimeError(f"DeepSeek request failed: {exc}") from exc
+		raise DeepSeekRequestError(f"DeepSeek request failed: {exc}", retryable=True) from exc
+	except TimeoutError as exc:
+		raise DeepSeekRequestError(f"DeepSeek request timed out: {exc}", retryable=True) from exc
 	return json.loads(body)
 
 
+def post_chat_completion_with_retries(
+	*,
+	api_key: str,
+	base_url: str,
+	payload: dict[str, Any],
+	timeout_seconds: float,
+	max_retries: int,
+	retry_sleep_seconds: float,
+	logger: logging.Logger,
+	doc_id: str,
+) -> dict[str, Any]:
+	"""Call DeepSeek with bounded retries for temporary API failures."""
+	for attempt in range(max_retries + 1):
+		try:
+			return post_chat_completion(
+				api_key=api_key,
+				base_url=base_url,
+				payload=payload,
+				timeout_seconds=timeout_seconds,
+			)
+		except DeepSeekRequestError as exc:
+			if not exc.retryable or attempt >= max_retries:
+				raise
+			sleep_seconds = retry_sleep_seconds * (attempt + 1)
+			logger.warning(
+				"retry doc_id=%s attempt=%s/%s sleep=%.1fs error=%s",
+				doc_id,
+				attempt + 1,
+				max_retries,
+				sleep_seconds,
+				str(exc)[:240],
+			)
+			time.sleep(sleep_seconds)
+	raise RuntimeError("unreachable retry loop state")
+
+
 def extract_message_content(api_response: dict[str, Any]) -> str:
+	"""Return model JSON text, falling back to reasoning content if needed.
+
+	DeepSeek may occasionally return an empty ``message.content`` while placing
+	the requested JSON object at the end of ``reasoning_content``. We keep the raw
+	artifact unchanged and use this fallback only for parsing cached responses.
+	"""
 	try:
-		return str(api_response["choices"][0]["message"]["content"])
+		message = api_response["choices"][0]["message"]
 	except (KeyError, IndexError, TypeError) as exc:
 		raise ValueError("API response does not contain choices[0].message.content") from exc
+	content = str(message.get("content", "") or "").strip()
+	if content:
+		return content
+	reasoning_content = str(message.get("reasoning_content", "") or "").strip()
+	if reasoning_content:
+		return reasoning_content
+	raise ValueError("API response choices[0].message has empty content and reasoning_content")
 
 
 def parse_model_content(content: str) -> dict[str, Any]:
 	"""Parse a JSON object from the model content, tolerating fenced output."""
 	cleaned = content.strip()
+	fenced_matches = re.findall(r"```(?:json)?\s*(\{.*?\})\s*```", cleaned, flags=re.DOTALL)
+	if fenced_matches:
+		cleaned = fenced_matches[-1].strip()
 	if cleaned.startswith("```"):
 		cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
 		cleaned = re.sub(r"\s*```$", "", cleaned)
@@ -312,7 +412,7 @@ def build_output_row(
 		"model": model,
 		"label_status": status,
 		"error": error,
-		"raw_response_path": str(raw_path.relative_to(ROOT)) if raw_path else "",
+		"raw_response_path": display_path(raw_path) if raw_path else "",
 		"text_len": len(str(row["clean_text"])),
 		"prompt_text_chars": min(len(str(row["clean_text"])), max_text_chars),
 		"labeled_at": utc_now_iso(),
@@ -348,7 +448,12 @@ def parse_cached_or_live_response(path: Path) -> dict[str, Any]:
 	return normalize_label_payload(parse_model_content(content))
 
 
-def label_one_row(row: pd.Series, args: argparse.Namespace, api_key: str | None) -> dict[str, Any]:
+def label_one_row(
+	row: pd.Series,
+	args: argparse.Namespace,
+	api_key: str | None,
+	logger: logging.Logger,
+) -> dict[str, Any]:
 	raw_path = raw_response_path(args.raw_output_dir, str(row["doc_id"]))
 	if args.dry_run:
 		return build_output_row(
@@ -375,11 +480,15 @@ def label_one_row(row: pd.Series, args: argparse.Namespace, api_key: str | None)
 		if not api_key:
 			raise RuntimeError("DEEPSEEK_API_KEY is not set.")
 		payload = build_chat_payload(row, model=args.model, max_text_chars=args.max_text_chars)
-		api_response = post_chat_completion(
+		api_response = post_chat_completion_with_retries(
 			api_key=api_key,
 			base_url=args.base_url,
 			payload=payload,
 			timeout_seconds=args.timeout_seconds,
+			max_retries=args.max_retries,
+			retry_sleep_seconds=args.retry_sleep_seconds,
+			logger=logger,
+			doc_id=str(row["doc_id"]),
 		)
 		artifact = {
 			"doc_id": row["doc_id"],
@@ -412,6 +521,29 @@ def label_one_row(row: pd.Series, args: argparse.Namespace, api_key: str | None)
 			error=str(exc),
 			max_text_chars=args.max_text_chars,
 		)
+
+
+def label_one_row_with_meta(
+	row: pd.Series,
+	args: argparse.Namespace,
+	api_key: str | None,
+	logger: logging.Logger,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+	"""Label one row and return private metadata for progress logging."""
+	started = time.perf_counter()
+	raw_path = raw_response_path(args.raw_output_dir, str(row["doc_id"]))
+	cached_before = args.resume and raw_path.exists()
+	record = label_one_row(row, args, api_key, logger)
+	elapsed_seconds = time.perf_counter() - started
+	source = "dry_run" if args.dry_run else "cache" if cached_before else "live"
+	return record, {
+		"doc_id": row["doc_id"],
+		"sample_pool": row["sample_pool"],
+		"status": record["label_status"],
+		"source": source,
+		"elapsed_seconds": elapsed_seconds,
+		"error": record.get("error", ""),
+	}
 
 
 def build_quality_report(labels: pd.DataFrame, *, input_records: int, requested_records: int) -> pd.DataFrame:
@@ -451,18 +583,131 @@ def build_quality_report(labels: pd.DataFrame, *, input_records: int, requested_
 	return pd.DataFrame(rows)
 
 
+def ensure_runtime_defaults(args: argparse.Namespace) -> argparse.Namespace:
+	"""Backfill new CLI defaults for tests that construct Namespace directly."""
+	args.workers = max(1, int(getattr(args, "workers", 1)))
+	args.max_retries = max(0, int(getattr(args, "max_retries", 2)))
+	args.retry_sleep_seconds = float(getattr(args, "retry_sleep_seconds", 3.0))
+	args.progress_interval = max(1, int(getattr(args, "progress_interval", DEFAULT_PROGRESS_INTERVAL)))
+	args.log_output = Path(getattr(args, "log_output", DEFAULT_LOG_OUTPUT))
+	return args
+
+
+def log_progress(
+	logger: logging.Logger,
+	*,
+	done: int,
+	total: int,
+	meta: dict[str, Any],
+	counts: dict[str, int],
+	started: float,
+	progress_interval: int,
+) -> None:
+	"""Write per-row and periodic aggregate progress messages."""
+	percent = done / total * 100 if total else 100
+	error = str(meta.get("error") or "").replace("\n", " ")[:240]
+	logger.info(
+		"progress done=%s/%s percent=%.1f doc_id=%s sample_pool=%s status=%s source=%s elapsed=%.1fs error=%s",
+		done,
+		total,
+		percent,
+		meta["doc_id"],
+		meta["sample_pool"],
+		meta["status"],
+		meta["source"],
+		meta["elapsed_seconds"],
+		error,
+	)
+	if done == total or done % progress_interval == 0:
+		elapsed = max(time.perf_counter() - started, 0.001)
+		avg_seconds = elapsed / done if done else 0.0
+		eta_seconds = avg_seconds * (total - done)
+		logger.info(
+			"summary done=%s/%s success=%s failed=%s dry_run=%s cached=%s live=%s avg_seconds=%.1f eta_seconds=%.1f",
+			done,
+			total,
+			counts.get("status_success", 0),
+			counts.get("status_failed", 0),
+			counts.get("status_dry_run", 0),
+			counts.get("source_cache", 0),
+			counts.get("source_live", 0),
+			avg_seconds,
+			eta_seconds,
+		)
+
+
 def run_labeling(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
+	args = ensure_runtime_defaults(args)
+	logger = setup_logger(args.log_output)
 	sample = pd.read_csv(args.input)
 	validate_input_columns(sample)
-	selected = sample.head(args.limit) if args.limit is not None else sample
+	selected = (sample.head(args.limit) if args.limit is not None else sample).copy()
 	api_key = None if args.dry_run else os.environ.get("DEEPSEEK_API_KEY")
 
-	records: list[dict[str, Any]] = []
-	for idx, row in selected.iterrows():
-		records.append(label_one_row(row, args, api_key))
-		if not args.dry_run and idx != selected.index[-1] and args.sleep_seconds > 0:
-			time.sleep(args.sleep_seconds)
+	logger.info(
+		"run_start input=%s requested=%s workers=%s resume=%s dry_run=%s model=%s raw_dir=%s",
+		len(sample),
+		len(selected),
+		args.workers,
+		args.resume,
+		args.dry_run,
+		args.model,
+		args.raw_output_dir,
+	)
 
+	records_by_order: dict[int, dict[str, Any]] = {}
+	counts = {
+		"status_success": 0,
+		"status_failed": 0,
+		"status_dry_run": 0,
+		"source_cache": 0,
+		"source_live": 0,
+	}
+	started = time.perf_counter()
+	total = len(selected)
+	rows = list(selected.reset_index(drop=True).iterrows())
+
+	def run_one(order_and_row: tuple[int, pd.Series]) -> tuple[int, dict[str, Any], dict[str, Any]]:
+		order, row = order_and_row
+		record, meta = label_one_row_with_meta(row, args, api_key, logger)
+		return order, record, meta
+
+	if args.workers == 1:
+		for order_and_row in rows:
+			order, record, meta = run_one(order_and_row)
+			records_by_order[order] = record
+			counts[f"status_{record['label_status']}"] = counts.get(f"status_{record['label_status']}", 0) + 1
+			counts[f"source_{meta['source']}"] = counts.get(f"source_{meta['source']}", 0) + 1
+			log_progress(
+				logger,
+				done=len(records_by_order),
+				total=total,
+				meta=meta,
+				counts=counts,
+				started=started,
+				progress_interval=args.progress_interval,
+			)
+			if not args.dry_run and len(records_by_order) != total and args.sleep_seconds > 0:
+				time.sleep(args.sleep_seconds)
+	else:
+		with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as executor:
+			futures = [executor.submit(run_one, order_and_row) for order_and_row in rows]
+			for future in concurrent.futures.as_completed(futures):
+				order, record, meta = future.result()
+				records_by_order[order] = record
+				counts[f"status_{record['label_status']}"] = counts.get(f"status_{record['label_status']}", 0) + 1
+				counts[f"source_{meta['source']}"] = counts.get(f"source_{meta['source']}", 0) + 1
+				log_progress(
+					logger,
+					done=len(records_by_order),
+					total=total,
+					meta=meta,
+					counts=counts,
+					started=started,
+					progress_interval=args.progress_interval,
+				)
+
+	records = [records_by_order[order] for order in sorted(records_by_order)]
 	labels = pd.DataFrame(records)
 	quality = build_quality_report(labels, input_records=len(sample), requested_records=len(selected))
 
@@ -470,6 +715,9 @@ def run_labeling(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
 	args.quality_output.parent.mkdir(parents=True, exist_ok=True)
 	labels.to_csv(args.labels_output, index=False)
 	quality.to_csv(args.quality_output, index=False)
+	logger.info("wrote_labels path=%s records=%s", args.labels_output, len(labels))
+	logger.info("wrote_quality_report path=%s records=%s", args.quality_output, len(quality))
+	logger.info("run_complete status_counts=%s", labels["label_status"].value_counts().sort_index().to_dict())
 	return labels, quality
 
 

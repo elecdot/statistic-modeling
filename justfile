@@ -47,4 +47,4 @@ manual-srdi-deepseek-round1-dry-run:
 
 # Run DeepSeek round-1 labeling. Requires DEEPSEEK_API_KEY in the shell.
 manual-srdi-deepseek-round1:
-    UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_deepseek_round1_label.py --resume
+    UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_deepseek_round1_label.py --resume --workers 3 --max-retries 2

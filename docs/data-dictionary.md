@@ -10,6 +10,7 @@ schema.
 | --- | --- | --- |
 | Current main upstream manual SRDI workbook | `data/interim/manual_policy_all_keyword_srdi.xlsx` | Metadata-only manual collection with title and abstract. |
 | Current main full-text manual SRDI workbook | `data/interim/manual_policy_all_keyword_srdi_with_full_text.xlsx` | Same record universe with collected full policy text. |
+| Manual SRDI jurisdiction corrections | `configs/manual_srdi_jurisdiction_overrides_v1.csv` | Reviewed corrections for reposted policies whose source site and policy jurisdiction differ. |
 | Main row-level full-text policy corpus | `data/processed/manual_policy_srdi_policy_records_fulltext_v1.csv` | Preferred 2020-2025 processed policy records for text mining. |
 | Baseline row-level title/abstract corpus | `data/processed/manual_policy_srdi_policy_records_v0.csv` | Earlier processed corpus retained for robustness and comparison. |
 | DID-facing policy-count intensity table | `data/processed/province_year_srdi_policy_intensity_v0.csv` | Balanced province-year policy count and keyword intensity candidate. |
@@ -120,6 +121,31 @@ Initial inspect notes:
   `关键词数量清单` still records a `专精特新` hit. Treat them as metadata-backed
   keyword matches until source text is rechecked.
 
+### `configs/manual_srdi_jurisdiction_overrides_v1.csv`
+
+Reviewed correction table for records where the collection source label refers
+to a reposting website, but the policy title and source evidence indicate a
+different policy jurisdiction. These corrections are applied by
+`scripts/manual_srdi_processed_corpus.py` and
+`scripts/manual_srdi_fulltext_processed_corpus.py`.
+
+| Item | Value |
+| --- | --- |
+| Data layer | `configs` |
+| Observation unit | One reviewed policy jurisdiction correction |
+| Current shape | 15 rows x 7 columns |
+| Main use | Ensure `province` represents the policy jurisdiction used in DID-facing province-year variables |
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `policy_id` | string | Stable policy ID derived from `source_url`. |
+| `source_url` | string / URL | Original collected source URL. |
+| `source_label_original` | string | Original `所属省份` value from the workbook. |
+| `corrected_province` | string | Reviewed policy jurisdiction to use in processed outputs. |
+| `correction_status` | string | Expected `corrected` for reviewed correction rows. |
+| `correction_reason` | string | Reason for correction, such as source-site reposting. |
+| `evidence` | string | Human-readable evidence, usually title-prefix jurisdiction evidence. |
+
 ### `data/interim/manual_policy_all_keyword_srdi_with_full_text.xlsx`
 
 Full-text version of the manual SRDI keyword workbook. It keeps the same record
@@ -149,13 +175,14 @@ Field meanings match `manual_policy_all_keyword_srdi.xlsx`, except:
 Processed full-text policy-record table derived from
 `data/interim/manual_policy_all_keyword_srdi_with_full_text.xlsx`. It keeps the
 same 2020-2025 window and province normalization as v0, but stores `full_text`
-instead of the shorter abstract text.
+instead of the shorter abstract text. The `province` field represents the
+reviewed policy jurisdiction, not necessarily the reposting source site.
 
 | Item | Value |
 | --- | --- |
 | Data layer | `processed` |
 | Observation unit | One manually collected SRDI-related policy record |
-| Current shape | 4475 rows x 21 columns |
+| Current shape | 4475 rows x 25 columns |
 | Date scope | 2020-2025 |
 | Source URL uniqueness | Unique `source_url` |
 | Generator | `scripts/manual_srdi_fulltext_processed_corpus.py` |
@@ -181,7 +208,7 @@ record-level input for the manual SRDI policy-mining path.
 | --- | --- |
 | Data layer | `processed` |
 | Observation unit | One manually collected SRDI-related policy record |
-| Current shape | 4475 rows x 20 columns |
+| Current shape | 4475 rows x 24 columns |
 | Date scope | 2020-2025 |
 | Source URL uniqueness | Unique `source_url` |
 | Generator | `scripts/manual_srdi_processed_corpus.py` |
@@ -190,7 +217,11 @@ record-level input for the manual SRDI policy-mining path.
 | Field | Type | Description |
 | --- | --- | --- |
 | `policy_id` | string | Stable ID derived from `source_url`. |
-| `province` | string / category | Analysis unit. `国家` is mapped to `central`; `新疆维吾尔自治区` and `新疆生产建设兵团` are mapped to `新疆`. |
+| `province` | string / category | Reviewed analysis unit. `国家` is mapped to `central`; `新疆维吾尔自治区` and `新疆生产建设兵团` are mapped to `新疆`; reviewed reposted out-of-jurisdiction policies use the corrected policy jurisdiction from `configs/manual_srdi_jurisdiction_overrides_v1.csv`. |
+| `province_before_correction` | string / category | Province value before applying reviewed jurisdiction overrides. |
+| `province_correction_status` | string | `original` or `corrected`. |
+| `province_correction_reason` | string | Reason for a reviewed correction, if any. |
+| `province_correction_evidence` | string | Human-readable evidence used for the province correction. |
 | `source_label_original` | string | Original `所属省份` value from the workbook. Use this to audit province normalization. |
 | `jurisdiction_type` | string / category | `central` or `local`. |
 | `region_name` | string | Original `地区名称`. |

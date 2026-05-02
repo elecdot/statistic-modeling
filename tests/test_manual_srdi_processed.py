@@ -8,6 +8,7 @@ from statistic_modeling.policy_text_crawler.manual_srdi_processed import (
 	build_manual_policy_records_v0,
 	build_manual_processed_quality_report,
 	build_province_year_intensity_v0,
+	load_jurisdiction_overrides,
 	stable_policy_id,
 )
 
@@ -145,9 +146,10 @@ def test_manual_srdi_fulltext_processed_v1_standardizes_full_text_records() -> N
 
 def test_manual_srdi_intensity_excludes_central_and_balances_years() -> None:
 	raw = pd.read_excel(ROOT / "data" / "interim" / "manual_policy_all_keyword_srdi.xlsx", sheet_name="tableData", dtype=str)
-	processed = build_manual_policy_records_v0(raw)
+	overrides = load_jurisdiction_overrides(ROOT / "configs" / "manual_srdi_jurisdiction_overrides_v1.csv")
+	processed = build_manual_policy_records_v0(raw, overrides)
 	intensity = build_province_year_intensity_v0(processed)
-	quality_report = build_manual_processed_quality_report(raw, processed, intensity).set_index("metric")
+	quality_report = build_manual_processed_quality_report(raw, processed, intensity, overrides).set_index("metric")
 
 	assert len(processed) == 4475
 	assert processed["source_url"].is_unique
@@ -160,3 +162,19 @@ def test_manual_srdi_intensity_excludes_central_and_balances_years() -> None:
 	assert "新疆" in set(intensity["province"])
 	assert quality_report.loc["excluded_outside_analysis_window", "value"] == 167
 	assert quality_report.loc["local_province_units", "value"] == 31
+	assert quality_report.loc["province_corrected_records", "value"] == 15
+
+
+def test_manual_srdi_jurisdiction_overrides_correct_reposted_policy_records() -> None:
+	overrides = load_jurisdiction_overrides(ROOT / "configs" / "manual_srdi_jurisdiction_overrides_v1.csv")
+	fulltext = pd.read_csv(ROOT / "data" / "processed" / "manual_policy_srdi_policy_records_fulltext_v1.csv")
+	label_docs = pd.read_csv(ROOT / "data" / "processed" / "manual_policy_srdi_label_docs_v1.csv")
+	round1_sample = pd.read_csv(ROOT / "data" / "interim" / "manual_policy_srdi_deepseek_sample_round1_v1.csv")
+	policy_id = "manual_srdi_947d656f3bdcf1ae"
+
+	assert len(overrides) == 15
+	assert fulltext.loc[fulltext["policy_id"].eq(policy_id), "province"].item() == "上海市"
+	assert fulltext.loc[fulltext["policy_id"].eq(policy_id), "province_before_correction"].item() == "北京市"
+	assert fulltext.loc[fulltext["policy_id"].eq(policy_id), "province_correction_status"].item() == "corrected"
+	assert label_docs.loc[label_docs["doc_id"].eq(policy_id), "province"].item() == "上海市"
+	assert round1_sample.loc[round1_sample["doc_id"].eq(policy_id), "province"].item() == "上海市"

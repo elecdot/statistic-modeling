@@ -13,6 +13,15 @@ ANALYSIS_END = pd.Timestamp("2025-12-31")
 SRDI_KEYWORD = "专精特新"
 CENTRAL_SOURCE_LABEL = "国家"
 XINJIANG_SOURCE_LABELS = {"新疆维吾尔自治区", "新疆生产建设兵团"}
+JURISDICTION_OVERRIDES_COLUMNS = [
+	"policy_id",
+	"source_url",
+	"source_label_original",
+	"corrected_province",
+	"correction_status",
+	"correction_reason",
+	"evidence",
+]
 
 RAW_COLUMNS = {
 	"序号": "source_row_number",
@@ -45,6 +54,10 @@ FULLTEXT_RAW_COLUMNS = {
 PROCESSED_POLICY_COLUMNS = [
 	"policy_id",
 	"province",
+	"province_before_correction",
+	"province_correction_status",
+	"province_correction_reason",
+	"province_correction_evidence",
 	"source_label_original",
 	"jurisdiction_type",
 	"region_name",
@@ -68,6 +81,10 @@ PROCESSED_POLICY_COLUMNS = [
 PROCESSED_FULLTEXT_POLICY_COLUMNS = [
 	"policy_id",
 	"province",
+	"province_before_correction",
+	"province_correction_status",
+	"province_correction_reason",
+	"province_correction_evidence",
 	"source_label_original",
 	"jurisdiction_type",
 	"region_name",
@@ -121,7 +138,55 @@ def normalize_province(source_label: object) -> str:
 	return label
 
 
-def normalize_manual_policy_workbook(raw: pd.DataFrame) -> pd.DataFrame:
+def load_jurisdiction_overrides(path: Path | None) -> pd.DataFrame:
+	"""Load auditable province overrides for reposted out-of-jurisdiction policies."""
+	if path is None or not path.exists():
+		return pd.DataFrame(columns=JURISDICTION_OVERRIDES_COLUMNS)
+	overrides = pd.read_csv(path, dtype=str).fillna("")
+	missing_columns = sorted(set(JURISDICTION_OVERRIDES_COLUMNS) - set(overrides.columns))
+	if missing_columns:
+		raise ValueError(f"manual SRDI jurisdiction overrides missing columns: {missing_columns}")
+	overrides = overrides[JURISDICTION_OVERRIDES_COLUMNS].copy()
+	if overrides["policy_id"].duplicated().any():
+		duplicates = overrides.loc[overrides["policy_id"].duplicated(), "policy_id"].head(5).tolist()
+		raise ValueError(f"manual SRDI jurisdiction overrides contain duplicate policy_id values: {duplicates}")
+	return overrides
+
+
+def apply_jurisdiction_overrides(records: pd.DataFrame, overrides: pd.DataFrame | None = None) -> pd.DataFrame:
+	"""Apply reviewed province corrections while preserving source labels for audit."""
+	records = records.copy()
+	records["province_before_correction"] = records["province"]
+	records["province_correction_status"] = "original"
+	records["province_correction_reason"] = ""
+	records["province_correction_evidence"] = ""
+
+	if overrides is None or overrides.empty:
+		return records
+
+	override_lookup = overrides.set_index("policy_id")
+	matched = records["policy_id"].isin(override_lookup.index)
+	if not matched.any():
+		return records
+
+	for policy_id, override in override_lookup.iterrows():
+		row_mask = records["policy_id"].eq(policy_id)
+		if not row_mask.any():
+			continue
+		corrected_province = normalize_province(override["corrected_province"])
+		records.loc[row_mask, "province"] = corrected_province
+		records.loc[row_mask, "province_correction_status"] = override["correction_status"] or "corrected"
+		records.loc[row_mask, "province_correction_reason"] = override["correction_reason"]
+		records.loc[row_mask, "province_correction_evidence"] = override["evidence"]
+
+	records["jurisdiction_type"] = records["province"].eq("central").map({True: "central", False: "local"})
+	return records
+
+
+def normalize_manual_policy_workbook(
+	raw: pd.DataFrame,
+	jurisdiction_overrides: pd.DataFrame | None = None,
+) -> pd.DataFrame:
 	"""Standardize raw workbook columns and derived flags."""
 	missing_columns = sorted(set(RAW_COLUMNS) - set(raw.columns))
 	if missing_columns:
@@ -145,6 +210,7 @@ def normalize_manual_policy_workbook(raw: pd.DataFrame) -> pd.DataFrame:
 	records["keyword_hit"] = SRDI_KEYWORD
 	records["keyword_count"] = pd.to_numeric(records["keyword_count_raw"], errors="coerce").astype("Int64")
 	records["policy_id"] = records["source_url"].map(stable_policy_id)
+	records = apply_jurisdiction_overrides(records, jurisdiction_overrides)
 	records["title_contains_srdi"] = records["title"].str.contains(SRDI_KEYWORD, regex=False)
 	records["abstract_contains_srdi"] = records["abstract"].str.contains(SRDI_KEYWORD, regex=False)
 	records["title_or_abstract_contains_srdi"] = records["title_contains_srdi"] | records["abstract_contains_srdi"]
@@ -152,7 +218,10 @@ def normalize_manual_policy_workbook(raw: pd.DataFrame) -> pd.DataFrame:
 	return records
 
 
-def normalize_manual_fulltext_policy_workbook(raw: pd.DataFrame) -> pd.DataFrame:
+def normalize_manual_fulltext_policy_workbook(
+	raw: pd.DataFrame,
+	jurisdiction_overrides: pd.DataFrame | None = None,
+) -> pd.DataFrame:
 	"""Standardize the full-text manual workbook and derived audit flags."""
 	missing_columns = sorted(set(FULLTEXT_RAW_COLUMNS) - set(raw.columns))
 	if missing_columns:
@@ -176,6 +245,7 @@ def normalize_manual_fulltext_policy_workbook(raw: pd.DataFrame) -> pd.DataFrame
 	records["keyword_hit"] = SRDI_KEYWORD
 	records["keyword_count"] = pd.to_numeric(records["keyword_count_raw"], errors="coerce").astype("Int64")
 	records["policy_id"] = records["source_url"].map(stable_policy_id)
+	records = apply_jurisdiction_overrides(records, jurisdiction_overrides)
 	records["full_text_len"] = records["full_text"].str.len()
 	records["title_contains_srdi"] = records["title"].str.contains(SRDI_KEYWORD, regex=False)
 	records["full_text_contains_srdi"] = records["full_text"].str.contains(SRDI_KEYWORD, regex=False)
@@ -184,16 +254,22 @@ def normalize_manual_fulltext_policy_workbook(raw: pd.DataFrame) -> pd.DataFrame
 	return records
 
 
-def build_manual_policy_records_v0(raw: pd.DataFrame) -> pd.DataFrame:
+def build_manual_policy_records_v0(
+	raw: pd.DataFrame,
+	jurisdiction_overrides: pd.DataFrame | None = None,
+) -> pd.DataFrame:
 	"""Build analysis-window processed policy records from the manual workbook."""
-	records = normalize_manual_policy_workbook(raw)
+	records = normalize_manual_policy_workbook(raw, jurisdiction_overrides)
 	processed = records.loc[records["in_analysis_window"]].copy()
 	return processed[PROCESSED_POLICY_COLUMNS].reset_index(drop=True)
 
 
-def build_manual_fulltext_policy_records_v1(raw: pd.DataFrame) -> pd.DataFrame:
+def build_manual_fulltext_policy_records_v1(
+	raw: pd.DataFrame,
+	jurisdiction_overrides: pd.DataFrame | None = None,
+) -> pd.DataFrame:
 	"""Build analysis-window full-text policy records from the manual workbook."""
-	records = normalize_manual_fulltext_policy_workbook(raw)
+	records = normalize_manual_fulltext_policy_workbook(raw, jurisdiction_overrides)
 	processed = records.loc[records["in_analysis_window"]].copy()
 	return processed[PROCESSED_FULLTEXT_POLICY_COLUMNS].reset_index(drop=True)
 
@@ -239,11 +315,13 @@ def build_manual_processed_quality_report(
 	raw: pd.DataFrame,
 	processed: pd.DataFrame,
 	intensity: pd.DataFrame,
+	jurisdiction_overrides: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
 	"""Create a long-form QA report for manual SRDI processed v0."""
-	normalized = normalize_manual_policy_workbook(raw)
+	normalized = normalize_manual_policy_workbook(raw, jurisdiction_overrides)
 	in_window = normalized["in_analysis_window"]
 	xinjiang_mask = normalized["source_label_original"].isin(XINJIANG_SOURCE_LABELS)
+	corrected = processed["province_correction_status"].eq("corrected")
 	rows = [
 		("source_records", len(normalized), "Rows in the manual workbook."),
 		("processed_records", len(processed), "Rows retained in 2020-2025 processed v0."),
@@ -261,6 +339,7 @@ def build_manual_processed_quality_report(
 		("intensity_records", len(intensity), "Balanced province-year rows."),
 		("xinjiang_original_records", int(xinjiang_mask.sum()), "Rows from the two original Xinjiang source labels before date filtering."),
 		("xinjiang_processed_records", int(processed["province"].eq("新疆").sum()), "Rows mapped to province=新疆 in processed v0."),
+		("province_corrected_records", int(corrected.sum()), "Rows with reviewed source-label jurisdiction corrections."),
 		("title_contains_srdi", int(processed["title_contains_srdi"].sum()), "Processed rows whose title contains 专精特新."),
 		("abstract_contains_srdi", int(processed["abstract_contains_srdi"].sum()), "Processed rows whose abstract contains 专精特新."),
 		("title_or_abstract_contains_srdi", int(processed["title_or_abstract_contains_srdi"].sum()), "Processed rows whose title or abstract contains 专精特新."),
@@ -271,11 +350,13 @@ def build_manual_processed_quality_report(
 def build_manual_fulltext_processed_quality_report(
 	raw: pd.DataFrame,
 	processed: pd.DataFrame,
+	jurisdiction_overrides: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
 	"""Create a long-form QA report for manual SRDI full-text processed v1."""
-	normalized = normalize_manual_fulltext_policy_workbook(raw)
+	normalized = normalize_manual_fulltext_policy_workbook(raw, jurisdiction_overrides)
 	in_window = normalized["in_analysis_window"]
 	xinjiang_mask = normalized["source_label_original"].isin(XINJIANG_SOURCE_LABELS)
+	corrected = processed["province_correction_status"].eq("corrected")
 	rows = [
 		("source_records", len(normalized), "Rows in the full-text manual workbook."),
 		("processed_records", len(processed), "Rows retained in 2020-2025 processed full-text v1."),
@@ -292,6 +373,7 @@ def build_manual_fulltext_processed_quality_report(
 		("local_province_units", int(processed.loc[processed["jurisdiction_type"].eq("local"), "province"].nunique()), "Local province units after Xinjiang merge."),
 		("xinjiang_original_records", int(xinjiang_mask.sum()), "Rows from the two original Xinjiang source labels before date filtering."),
 		("xinjiang_processed_records", int(processed["province"].eq("新疆").sum()), "Rows mapped to province=新疆 in processed full-text v1."),
+		("province_corrected_records", int(corrected.sum()), "Rows with reviewed source-label jurisdiction corrections."),
 		("title_contains_srdi", int(processed["title_contains_srdi"].sum()), "Processed rows whose title contains 专精特新."),
 		("full_text_contains_srdi", int(processed["full_text_contains_srdi"].sum()), "Processed rows whose full text contains 专精特新."),
 		("title_or_full_text_contains_srdi", int(processed["title_or_full_text_contains_srdi"].sum()), "Processed rows whose title or full text contains 专精特新."),
@@ -307,12 +389,14 @@ def write_manual_processed_v0(
 	processed_output: Path,
 	intensity_output: Path,
 	quality_output: Path,
+	jurisdiction_overrides_input: Path | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 	"""Read the manual workbook and write processed records, intensity, and QA."""
 	raw = pd.read_excel(workbook_input, sheet_name="tableData", dtype=str)
-	processed = build_manual_policy_records_v0(raw)
+	jurisdiction_overrides = load_jurisdiction_overrides(jurisdiction_overrides_input)
+	processed = build_manual_policy_records_v0(raw, jurisdiction_overrides)
 	intensity = build_province_year_intensity_v0(processed)
-	quality_report = build_manual_processed_quality_report(raw, processed, intensity)
+	quality_report = build_manual_processed_quality_report(raw, processed, intensity, jurisdiction_overrides)
 
 	processed_output.parent.mkdir(parents=True, exist_ok=True)
 	intensity_output.parent.mkdir(parents=True, exist_ok=True)
@@ -327,11 +411,13 @@ def write_manual_fulltext_processed_v1(
 	workbook_input: Path,
 	processed_output: Path,
 	quality_output: Path,
+	jurisdiction_overrides_input: Path | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
 	"""Read the full-text workbook and write processed records plus QA."""
 	raw = pd.read_excel(workbook_input, sheet_name="tableData", dtype=str)
-	processed = build_manual_fulltext_policy_records_v1(raw)
-	quality_report = build_manual_fulltext_processed_quality_report(raw, processed)
+	jurisdiction_overrides = load_jurisdiction_overrides(jurisdiction_overrides_input)
+	processed = build_manual_fulltext_policy_records_v1(raw, jurisdiction_overrides)
+	quality_report = build_manual_fulltext_processed_quality_report(raw, processed, jurisdiction_overrides)
 
 	processed_output.parent.mkdir(parents=True, exist_ok=True)
 	quality_output.parent.mkdir(parents=True, exist_ok=True)

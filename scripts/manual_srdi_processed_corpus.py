@@ -35,6 +35,12 @@ def main() -> None:
 		default=Path("outputs/manual_policy_srdi_processed_v0_quality_report.csv"),
 		help="Processed manual SRDI v0 QA report output path.",
 	)
+	parser.add_argument(
+		"--jurisdiction-overrides",
+		type=Path,
+		default=Path("configs/manual_srdi_jurisdiction_overrides_v1.csv"),
+		help="Reviewed source-label jurisdiction correction CSV.",
+	)
 	args = parser.parse_args()
 
 	workspace_root = find_workspace_root()
@@ -42,12 +48,18 @@ def main() -> None:
 	processed_output = workspace_root / args.processed_output if not args.processed_output.is_absolute() else args.processed_output
 	intensity_output = workspace_root / args.intensity_output if not args.intensity_output.is_absolute() else args.intensity_output
 	quality_output = workspace_root / args.quality_output if not args.quality_output.is_absolute() else args.quality_output
+	jurisdiction_overrides = (
+		workspace_root / args.jurisdiction_overrides
+		if not args.jurisdiction_overrides.is_absolute()
+		else args.jurisdiction_overrides
+	)
 
 	processed, intensity, quality_report = write_manual_processed_v0(
 		workbook_input,
 		processed_output,
 		intensity_output,
 		quality_output,
+		jurisdiction_overrides,
 	)
 	print(f"wrote {len(processed)} rows to {processed_output}")
 	print(f"wrote {len(intensity)} rows to {intensity_output}")
