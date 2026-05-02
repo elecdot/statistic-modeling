@@ -36,3 +36,7 @@ govcn-xxgk-processed-v0:
 # Build processed records and province-year intensity from the manual SRDI workbook.
 manual-srdi-processed-v0:
     UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_processed_corpus.py
+
+# Build processed records from the manual SRDI workbook with full text.
+manual-srdi-fulltext-processed-v1:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_fulltext_processed_corpus.py

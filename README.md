@@ -40,10 +40,16 @@ expansion.
   `docs/manual-srdi-policy-mining-notes.md`.
 - [x] Build paper-facing descriptive tables and figures in
   `notebooks/41_manual_srdi_descriptive_analysis.py`.
-- [ ] Decide whether to freeze the current title/abstract dictionary features
-  as v0 paper-facing proxy variables.
-- [ ] Decide whether title/abstract-only evidence is enough for the paper's
-  text-mining claims, or whether selected full-text retrieval is needed.
+- [x] Add a full-text v1 mining path from
+  `data/interim/manual_policy_all_keyword_srdi_with_full_text.xlsx`, keeping the
+  v0 title/abstract path as a baseline.
+- [x] Compare v0 title/abstract and full-text v1 text measures in
+  `notebooks/43_manual_srdi_text_measure_comparison.py`. Current evidence
+  favors full-text v1 as the main aggregate text-intensity proxy, with v0 kept
+  as robustness.
+- [ ] Confirm the paper convention for full-text v1 interpretation: use
+  province-year aggregate intensity proxies, avoid treating row-level dictionary
+  hits as final manual policy-tool labels.
 - [ ] Link `province_year_srdi_policy_intensity_v0.csv` to the downstream
   staggered-DID panel and finalize province-name compatibility.
 

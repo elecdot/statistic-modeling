@@ -40,7 +40,7 @@ import pandas as pd
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-# #%matplotlib inline
+# %matplotlib inline
 
 # %%
 ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()

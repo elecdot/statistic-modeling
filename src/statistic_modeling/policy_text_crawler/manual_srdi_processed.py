@@ -28,6 +28,20 @@ RAW_COLUMNS = {
 	"摘要": "abstract",
 }
 
+FULLTEXT_RAW_COLUMNS = {
+	"序号": "source_row_number",
+	"所属省份": "source_label_original",
+	"地区名称": "region_name",
+	"发文日期": "publish_date",
+	"关键词数量清单": "keyword_count_metadata",
+	"关键词总数量": "keyword_count_raw",
+	"标题": "title",
+	"文号": "document_number",
+	"发文机构": "agency",
+	"原文链接": "source_url",
+	"原文": "full_text",
+}
+
 PROCESSED_POLICY_COLUMNS = [
 	"policy_id",
 	"province",
@@ -47,6 +61,30 @@ PROCESSED_POLICY_COLUMNS = [
 	"title_contains_srdi",
 	"abstract_contains_srdi",
 	"title_or_abstract_contains_srdi",
+	"in_analysis_window",
+	"review_status",
+]
+
+PROCESSED_FULLTEXT_POLICY_COLUMNS = [
+	"policy_id",
+	"province",
+	"source_label_original",
+	"jurisdiction_type",
+	"region_name",
+	"publish_date",
+	"publish_year",
+	"keyword_hit",
+	"keyword_count",
+	"keyword_count_raw",
+	"title",
+	"document_number",
+	"agency",
+	"source_url",
+	"full_text",
+	"full_text_len",
+	"title_contains_srdi",
+	"full_text_contains_srdi",
+	"title_or_full_text_contains_srdi",
 	"in_analysis_window",
 	"review_status",
 ]
@@ -114,11 +152,50 @@ def normalize_manual_policy_workbook(raw: pd.DataFrame) -> pd.DataFrame:
 	return records
 
 
+def normalize_manual_fulltext_policy_workbook(raw: pd.DataFrame) -> pd.DataFrame:
+	"""Standardize the full-text manual workbook and derived audit flags."""
+	missing_columns = sorted(set(FULLTEXT_RAW_COLUMNS) - set(raw.columns))
+	if missing_columns:
+		raise ValueError(f"manual SRDI full-text workbook missing columns: {missing_columns}")
+
+	records = raw.rename(columns=FULLTEXT_RAW_COLUMNS).copy()
+	for column in FULLTEXT_RAW_COLUMNS.values():
+		if column in records:
+			records[column] = records[column].fillna("").astype(str).str.strip()
+
+	records["publish_date_parsed"] = pd.to_datetime(records["publish_date"], errors="coerce")
+	records["publish_date"] = records["publish_date_parsed"].dt.date.astype("string")
+	records["publish_year"] = records["publish_date_parsed"].dt.year.astype("Int64")
+	records["in_analysis_window"] = records["publish_date_parsed"].between(
+		ANALYSIS_START,
+		ANALYSIS_END,
+		inclusive="both",
+	)
+	records["province"] = records["source_label_original"].map(normalize_province)
+	records["jurisdiction_type"] = records["province"].eq("central").map({True: "central", False: "local"})
+	records["keyword_hit"] = SRDI_KEYWORD
+	records["keyword_count"] = pd.to_numeric(records["keyword_count_raw"], errors="coerce").astype("Int64")
+	records["policy_id"] = records["source_url"].map(stable_policy_id)
+	records["full_text_len"] = records["full_text"].str.len()
+	records["title_contains_srdi"] = records["title"].str.contains(SRDI_KEYWORD, regex=False)
+	records["full_text_contains_srdi"] = records["full_text"].str.contains(SRDI_KEYWORD, regex=False)
+	records["title_or_full_text_contains_srdi"] = records["title_contains_srdi"] | records["full_text_contains_srdi"]
+	records["review_status"] = "accepted"
+	return records
+
+
 def build_manual_policy_records_v0(raw: pd.DataFrame) -> pd.DataFrame:
 	"""Build analysis-window processed policy records from the manual workbook."""
 	records = normalize_manual_policy_workbook(raw)
 	processed = records.loc[records["in_analysis_window"]].copy()
 	return processed[PROCESSED_POLICY_COLUMNS].reset_index(drop=True)
+
+
+def build_manual_fulltext_policy_records_v1(raw: pd.DataFrame) -> pd.DataFrame:
+	"""Build analysis-window full-text policy records from the manual workbook."""
+	records = normalize_manual_fulltext_policy_workbook(raw)
+	processed = records.loc[records["in_analysis_window"]].copy()
+	return processed[PROCESSED_FULLTEXT_POLICY_COLUMNS].reset_index(drop=True)
 
 
 def build_province_year_intensity_v0(processed: pd.DataFrame) -> pd.DataFrame:
@@ -191,6 +268,40 @@ def build_manual_processed_quality_report(
 	return pd.DataFrame(rows, columns=["metric", "value", "note"])
 
 
+def build_manual_fulltext_processed_quality_report(
+	raw: pd.DataFrame,
+	processed: pd.DataFrame,
+) -> pd.DataFrame:
+	"""Create a long-form QA report for manual SRDI full-text processed v1."""
+	normalized = normalize_manual_fulltext_policy_workbook(raw)
+	in_window = normalized["in_analysis_window"]
+	xinjiang_mask = normalized["source_label_original"].isin(XINJIANG_SOURCE_LABELS)
+	rows = [
+		("source_records", len(normalized), "Rows in the full-text manual workbook."),
+		("processed_records", len(processed), "Rows retained in 2020-2025 processed full-text v1."),
+		("excluded_outside_analysis_window", int((~in_window).sum()), "Rows outside 2020-2025; currently 2026 records."),
+		("missing_publish_dates", int(normalized["publish_date_parsed"].isna().sum()), "Rows with unparseable publication date."),
+		("missing_source_urls", int(normalized["source_url"].eq("").sum()), "Rows without source URL."),
+		("duplicate_source_urls", int(processed.duplicated("source_url").sum()), "Duplicate URLs in processed full-text v1."),
+		("missing_titles", int(processed["title"].eq("").sum()), "Rows without title in processed full-text v1."),
+		("missing_agency", int(processed["agency"].eq("").sum()), "Rows without agency in processed full-text v1."),
+		("missing_document_number", int(processed["document_number"].eq("").sum()), "Rows without document number in processed full-text v1."),
+		("missing_full_text", int(processed["full_text"].eq("").sum()), "Rows without full text in processed full-text v1."),
+		("central_records", int(processed["jurisdiction_type"].eq("central").sum()), "Central records retained in processed full-text v1."),
+		("local_records", int(processed["jurisdiction_type"].eq("local").sum()), "Local records retained in processed full-text v1."),
+		("local_province_units", int(processed.loc[processed["jurisdiction_type"].eq("local"), "province"].nunique()), "Local province units after Xinjiang merge."),
+		("xinjiang_original_records", int(xinjiang_mask.sum()), "Rows from the two original Xinjiang source labels before date filtering."),
+		("xinjiang_processed_records", int(processed["province"].eq("新疆").sum()), "Rows mapped to province=新疆 in processed full-text v1."),
+		("title_contains_srdi", int(processed["title_contains_srdi"].sum()), "Processed rows whose title contains 专精特新."),
+		("full_text_contains_srdi", int(processed["full_text_contains_srdi"].sum()), "Processed rows whose full text contains 专精特新."),
+		("title_or_full_text_contains_srdi", int(processed["title_or_full_text_contains_srdi"].sum()), "Processed rows whose title or full text contains 专精特新."),
+		("min_full_text_len", int(processed["full_text_len"].min()), "Minimum full-text character length."),
+		("median_full_text_len", float(processed["full_text_len"].median()), "Median full-text character length."),
+		("max_full_text_len", int(processed["full_text_len"].max()), "Maximum full-text character length."),
+	]
+	return pd.DataFrame(rows, columns=["metric", "value", "note"])
+
+
 def write_manual_processed_v0(
 	workbook_input: Path,
 	processed_output: Path,
@@ -210,3 +321,20 @@ def write_manual_processed_v0(
 	intensity.to_csv(intensity_output, index=False)
 	quality_report.to_csv(quality_output, index=False)
 	return processed, intensity, quality_report
+
+
+def write_manual_fulltext_processed_v1(
+	workbook_input: Path,
+	processed_output: Path,
+	quality_output: Path,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+	"""Read the full-text workbook and write processed records plus QA."""
+	raw = pd.read_excel(workbook_input, sheet_name="tableData", dtype=str)
+	processed = build_manual_fulltext_policy_records_v1(raw)
+	quality_report = build_manual_fulltext_processed_quality_report(raw, processed)
+
+	processed_output.parent.mkdir(parents=True, exist_ok=True)
+	quality_output.parent.mkdir(parents=True, exist_ok=True)
+	processed.to_csv(processed_output, index=False)
+	quality_report.to_csv(quality_output, index=False)
+	return processed, quality_report

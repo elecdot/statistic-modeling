@@ -91,6 +91,57 @@ Initial inspect notes:
   `关键词数量清单` still records a `专精特新` hit. Treat them as metadata-backed
   keyword matches until source text is rechecked.
 
+### `data/interim/manual_policy_all_keyword_srdi_with_full_text.xlsx`
+
+Full-text version of the manual SRDI keyword workbook. It keeps the same record
+universe as `manual_policy_all_keyword_srdi.xlsx`, but replaces the collected
+`摘要` field with `原文` so the formal text-mining path can use title + full
+policy text.
+
+| Item | Value |
+| --- | --- |
+| Data layer | `interim` |
+| File format | Excel workbook (`.xlsx`) |
+| Sheet | `tableData` |
+| Observation unit | One manually collected policy record |
+| Current shape | 4642 rows x 11 columns |
+| Date coverage in file | 2020-01-02 through 2026-04-30 |
+| Current 2020-2025 window count | 4475 rows |
+| Main use | Full-text policy-tool dictionary features and v0/v1 method comparison |
+
+Field meanings match `manual_policy_all_keyword_srdi.xlsx`, except:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `原文` | string | Collected full policy text. The current workbook has no missing full text; 2020-2025 records have median full-text length of 5359 Chinese characters. |
+
+### `data/processed/manual_policy_srdi_policy_records_fulltext_v1.csv`
+
+Processed full-text policy-record table derived from
+`data/interim/manual_policy_all_keyword_srdi_with_full_text.xlsx`. It keeps the
+same 2020-2025 window and province normalization as v0, but stores `full_text`
+instead of the shorter abstract text.
+
+| Item | Value |
+| --- | --- |
+| Data layer | `processed` |
+| Observation unit | One manually collected SRDI-related policy record |
+| Current shape | 4475 rows x 21 columns |
+| Date scope | 2020-2025 |
+| Source URL uniqueness | Unique `source_url` |
+| Generator | `scripts/manual_srdi_fulltext_processed_corpus.py` |
+| Quality report | `outputs/manual_policy_srdi_processed_fulltext_v1_quality_report.csv` |
+
+Additional or changed fields relative to
+`manual_policy_srdi_policy_records_v0.csv`:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `full_text` | string | Collected full policy text. |
+| `full_text_len` | integer | Character length of `full_text`. |
+| `full_text_contains_srdi` | boolean | Whether `full_text` contains `专精特新`. |
+| `title_or_full_text_contains_srdi` | boolean | Whether either title or full text contains `专精特新`. |
+
 ### `data/processed/manual_policy_srdi_policy_records_v0.csv`
 
 Processed policy-record table derived from
@@ -282,6 +333,52 @@ Related review artifacts:
 - `outputs/manual_policy_srdi_no_tool_hit_summary_v0.csv`: no-hit counts by
   year and province.
 
+### `data/processed/manual_policy_srdi_text_features_fulltext_v1.csv`
+
+Row-level full-text feature table built from
+`data/processed/manual_policy_srdi_policy_records_fulltext_v1.csv` in
+`notebooks/42_manual_srdi_fulltext_text_mining.py`. It applies the same
+reviewed 85-term dictionary as v0 to title + full text.
+
+| Item | Value |
+| --- | --- |
+| Data layer | `processed` |
+| Observation unit | One processed manual SRDI policy record |
+| Current shape | 4475 rows x 31 columns |
+| Text surface | `title` + `full_text` |
+| Method | Substring dictionary |
+| Generator | `notebooks/42_manual_srdi_fulltext_text_mining.py` |
+| Quality report | `outputs/manual_policy_srdi_text_mining_fulltext_v1_quality_report.csv` |
+
+Key difference from v0:
+
+- no-hit records fall from 271 to 2 because full text contains substantially
+  more policy-tool language;
+- high-coverage dictionary terms rise from 1 to 41, so full-text feature shares
+  require more caution before causal interpretation.
+
+### `data/processed/province_year_srdi_text_features_fulltext_v1.csv`
+
+Province-year aggregate full-text feature table. It joins the same
+`data/processed/province_year_srdi_policy_intensity_v0.csv` policy-count frame
+with aggregates from
+`data/processed/manual_policy_srdi_text_features_fulltext_v1.csv`.
+
+| Item | Value |
+| --- | --- |
+| Data layer | `processed` |
+| Observation unit | One local province unit-year |
+| Current shape | 186 rows x 26 columns |
+| Geographic units | 31 local province units |
+| Date scope | 2020-2025 |
+| Excludes | `central` records |
+| Generator | `notebooks/42_manual_srdi_fulltext_text_mining.py` |
+| Quality report | `outputs/manual_policy_srdi_text_mining_fulltext_v1_quality_report.csv` |
+
+Additional fields beyond the v0 aggregate include `avg_full_text_len` and
+`any_tool_policy_share`. Count and share variables use the full-text v1
+dictionary surface.
+
 ### `outputs/manual_policy_srdi_text_mining_v0_quality_report.csv`
 
 Long-form QA report for manual SRDI text-mining v0 outputs. Current key
@@ -297,6 +394,26 @@ metrics:
 - `low_coverage_terms_lte_5_records=6`
 - `high_coverage_terms_gte_25pct_records=1`
 - `terms_with_review_flags=50`
+
+### `outputs/manual_policy_srdi_text_mining_fulltext_v1_quality_report.csv`
+
+Long-form QA report for manual SRDI full-text v1 feature outputs. Current key
+metrics:
+
+- `row_feature_records=4475`
+- `province_year_feature_records=186`
+- `policy_records_with_any_tool_hit=4473`
+- `policy_records_without_tool_hit=2`
+- `dictionary_terms=85`
+- `zero_coverage_terms=0`
+- `low_coverage_terms_lte_5_records=1`
+- `high_coverage_terms_gte_25pct_records=41`
+- `terms_with_review_flags=54`
+
+The sharp decline in no-hit rows indicates that full text improves policy-tool
+coverage. The increase in high-coverage terms indicates that full-text features
+should be interpreted as broad policy-tool intensity proxies rather than
+precise row-level labels.
 
 ### gov.cn XXGK Candidate Queues
 

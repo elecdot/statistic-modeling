@@ -1,9 +1,8 @@
 # Manual SRDI Policy Mining Notes
 
 This document records the current milestone for the manually collected SRDI
-policy dataset and title/abstract text-mining path. It is a method and paper
-drafting record, not the active task board. Active work items stay only in the
-project README.
+policy dataset and text-mining path. It is a method and paper drafting record,
+not the active task board. Active work items stay only in the project README.
 
 ## Milestone Summary
 
@@ -65,11 +64,29 @@ The processing script for the record-level and intensity tables is
 `scripts/manual_srdi_processed_corpus.py`. The text-mining notebook is
 `notebooks/40_manual_srdi_text_mining.py`.
 
+The full-text v1 branch was added after the v0 milestone:
+
+1. Full-text manual workbook:
+   `data/interim/manual_policy_all_keyword_srdi_with_full_text.xlsx`
+2. Processed full-text records:
+   `data/processed/manual_policy_srdi_policy_records_fulltext_v1.csv`
+3. Row-level full-text text features:
+   `data/processed/manual_policy_srdi_text_features_fulltext_v1.csv`
+4. Province-year full-text text features:
+   `data/processed/province_year_srdi_text_features_fulltext_v1.csv`
+5. Full-text QA artifacts:
+   `outputs/manual_policy_srdi_processed_fulltext_v1_quality_report.csv` and
+   `outputs/manual_policy_srdi_text_mining_fulltext_v1_quality_report.csv`.
+
+The full-text processing script is
+`scripts/manual_srdi_fulltext_processed_corpus.py`. The full-text text-mining
+notebook is `notebooks/42_manual_srdi_fulltext_text_mining.py`.
+
 ## Text-Mining Method
 
-The current text-mining surface is `title + abstract`. It does not use full
-policy text. The method is a transparent substring dictionary rather than a
-segmentation model or supervised classifier.
+The v0 text-mining surface is `title + abstract`. The v1 text-mining surface is
+`title + full_text`. Both versions use the same transparent substring
+dictionary rather than a segmentation model or supervised classifier.
 
 The dictionary has three policy-tool categories:
 
@@ -82,8 +99,8 @@ The dictionary has three policy-tool categories:
   environment terms.
 
 Rows can match multiple categories. These features should be described as
-title/abstract dictionary indicators. They are not final manual policy-tool
-classification labels.
+dictionary indicators. They are not final manual policy-tool classification
+labels.
 
 ## Dictionary Review And Revision
 
@@ -144,6 +161,51 @@ Important interpretation cautions:
 
 The current dictionary has no zero-coverage terms after revision.
 
+## Full-Text V1 Update
+
+The full-text v1 run keeps the same 2020-2025 sample window, province
+normalization, and reviewed 85-term dictionary. The only intended measurement
+change is the text surface: `title + full_text` replaces `title + abstract`.
+
+Key full-text v1 diagnostics:
+
+- processed full-text records: 4475;
+- missing full text: 0;
+- median full-text length: 5359 Chinese characters;
+- maximum full-text length: 316503 Chinese characters;
+- policy records with any tool hit: 4473;
+- policy records without tool hit: 2;
+- zero-coverage dictionary terms: 0;
+- high-coverage terms, matching at least 25% of records: 41;
+- terms with review flags: 54.
+
+The main methodological implication is that full text almost eliminates no-hit
+records, but it also makes broad dictionary terms much more common. Therefore,
+full-text variables should be framed as policy-tool intensity proxies and
+interpreted at aggregate levels, especially province-year aggregates, rather
+than as precise row-level labels.
+
+## V0 And V1 Measure Comparison
+
+The v0/v1 comparison notebook is
+`notebooks/43_manual_srdi_text_measure_comparison.py`.
+
+Current comparison results:
+
+- matched policy records: 4475;
+- v0 no-tool-hit records: 271;
+- v1 no-tool-hit records: 2;
+- v0 no-hit rows recovered by v1: 269;
+- still no-hit after v1: 2;
+- high-coverage terms: 1 in v0 and 41 in full-text v1;
+- minimum Pearson correlation among v0/v1 province-year tool shares: 0.280.
+
+The comparison supports using full-text v1 as the main aggregate text-intensity
+measure because it greatly improves recall. It also supports keeping v0 as a
+robustness or method-comparison measure because full-text terms can become
+broad and highly saturated. In paper language, v1 should be presented as an
+aggregate text-intensity proxy rather than a precise row-level instrument label.
+
 ## Paper Drafting Notes
 
 Potential data-source wording:
@@ -156,7 +218,7 @@ Potential policy-intensity wording:
 
 Potential text-mining wording:
 
-> 在文本挖掘部分，本文使用政策标题与摘要构造可解释的词典特征。词典围绕供给型、需求型和环境型政策工具展开，采用中文短语的直接匹配方式。该方法强调可复核性与解释性，不将词典命中直接等同于人工政策工具分类。
+> 在文本挖掘部分，本文使用政策标题与正文构造可解释的词典特征，并保留标题与摘要版本作为方法基准。词典围绕供给型、需求型和环境型政策工具展开，采用中文短语的直接匹配方式。该方法强调可复核性与解释性，不将词典命中直接等同于人工政策工具分类。
 
 Potential dictionary-revision wording:
 
@@ -164,4 +226,4 @@ Potential dictionary-revision wording:
 
 Potential limitation wording:
 
-> 需要说明的是，本文词典特征基于标题与摘要，而非全文；同时部分词项具有较宽语义。因此，相关变量更适合作为省份-年份政策文本强度和政策工具倾向的可解释代理变量，而不宜理解为逐条政策的最终人工分类结果。
+> 需要说明的是，全文词典匹配虽然显著降低了未命中比例，但部分词项具有较宽语义，并且在全文中覆盖率较高。因此，相关变量更适合作为省份-年份政策文本强度和政策工具倾向的可解释代理变量，而不宜理解为逐条政策的最终人工分类结果。

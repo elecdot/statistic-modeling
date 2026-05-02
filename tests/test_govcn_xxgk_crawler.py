@@ -20,7 +20,9 @@ from statistic_modeling.policy_text_crawler.govcn_xxgk_processed import (
 	build_processed_v0,
 )
 from statistic_modeling.policy_text_crawler.manual_srdi_processed import (
+	build_manual_fulltext_policy_records_v1,
 	build_manual_policy_records_v0,
+	build_manual_fulltext_processed_quality_report,
 	build_manual_processed_quality_report,
 	build_province_year_intensity_v0,
 	stable_policy_id,
@@ -219,6 +221,64 @@ def test_manual_srdi_processed_v0_standardizes_window_and_province_units() -> No
 	)
 
 
+def test_manual_srdi_fulltext_processed_v1_standardizes_full_text_records() -> None:
+	raw = pd.DataFrame(
+		[
+			{
+				"序号": "1",
+				"所属省份": "国家",
+				"地区名称": "国家",
+				"发文日期": "2025-01-01",
+				"关键词数量清单": '{"专精特新": 2}',
+				"关键词总数量": "2",
+				"标题": "政策标题",
+				"文号": "",
+				"发文机构": "",
+				"原文链接": "https://example.com/central-fulltext",
+				"原文": "中央专精特新全文",
+			},
+			{
+				"序号": "2",
+				"所属省份": "新疆生产建设兵团",
+				"地区名称": "兵团",
+				"发文日期": "2024-01-01",
+				"关键词数量清单": '{"专精特新": 1}',
+				"关键词总数量": "1",
+				"标题": "兵团专精特新政策",
+				"文号": "",
+				"发文机构": "兵团工信局",
+				"原文链接": "https://example.com/xj-fulltext",
+				"原文": "政策全文",
+			},
+			{
+				"序号": "3",
+				"所属省份": "广东省",
+				"地区名称": "广东",
+				"发文日期": "2026-01-01",
+				"关键词数量清单": '{"专精特新": 1}',
+				"关键词总数量": "1",
+				"标题": "2026政策",
+				"文号": "",
+				"发文机构": "工信厅",
+				"原文链接": "https://example.com/out-of-window-fulltext",
+				"原文": "专精特新全文",
+			},
+		]
+	)
+
+	processed = build_manual_fulltext_policy_records_v1(raw)
+	quality_report = build_manual_fulltext_processed_quality_report(raw, processed).set_index("metric")
+
+	assert len(processed) == 2
+	assert "full_text" in processed
+	assert processed.loc[processed["source_label_original"].eq("国家"), "province"].item() == "central"
+	assert processed.loc[processed["source_label_original"].eq("新疆生产建设兵团"), "province"].item() == "新疆"
+	assert processed.loc[processed["source_url"].eq("https://example.com/central-fulltext"), "full_text_contains_srdi"].item()
+	assert processed.loc[processed["source_url"].eq("https://example.com/xj-fulltext"), "title_or_full_text_contains_srdi"].item()
+	assert quality_report.loc["excluded_outside_analysis_window", "value"] == 1
+	assert quality_report.loc["missing_full_text", "value"] == 0
+
+
 def test_manual_srdi_intensity_excludes_central_and_balances_years() -> None:
 	raw = pd.read_excel(ROOT / "data" / "interim" / "manual_policy_all_keyword_srdi.xlsx", sheet_name="tableData", dtype=str)
 	processed = build_manual_policy_records_v0(raw)
@@ -296,7 +356,7 @@ def test_candidate_window_filter_and_provenance_aggregation() -> None:
 
 def test_source_manifest_globs_do_not_mix_srdi_and_all_policy_cache() -> None:
 	manifest = pd.read_csv(ROOT / "data" / "source-manifest.csv").fillna("")
-	assert len(manifest) == 27
+	assert len(manifest) == 33
 	assert {
 		"generated_by",
 		"config_files",
@@ -355,6 +415,59 @@ def test_manual_srdi_text_mining_outputs_are_consistent() -> None:
 	assert quality_report.loc["province_year_feature_records", "value"] == 186
 	assert quality_report.loc["no_tool_hit_review_sample_records", "value"] == 30
 	assert quality_report.loc["zero_coverage_terms", "value"] == 0
+
+
+def test_manual_srdi_fulltext_outputs_are_consistent() -> None:
+	processed = pd.read_csv(ROOT / "data" / "processed" / "manual_policy_srdi_policy_records_fulltext_v1.csv")
+	row_features = pd.read_csv(ROOT / "data" / "processed" / "manual_policy_srdi_text_features_fulltext_v1.csv")
+	province_year_features = pd.read_csv(ROOT / "data" / "processed" / "province_year_srdi_text_features_fulltext_v1.csv")
+	processed_quality = pd.read_csv(ROOT / "outputs" / "manual_policy_srdi_processed_fulltext_v1_quality_report.csv").set_index("metric")
+	text_quality = pd.read_csv(ROOT / "outputs" / "manual_policy_srdi_text_mining_fulltext_v1_quality_report.csv").set_index("metric")
+	dictionary = pd.read_csv(ROOT / "outputs" / "manual_policy_srdi_tool_dictionary_fulltext_v1.csv")
+	dictionary_coverage = pd.read_csv(ROOT / "outputs" / "manual_policy_srdi_tool_dictionary_coverage_fulltext_v1.csv")
+	no_hit_records = pd.read_csv(ROOT / "outputs" / "manual_policy_srdi_no_tool_hit_records_fulltext_v1.csv")
+
+	assert len(processed) == 4475
+	assert len(row_features) == 4475
+	assert len(province_year_features) == 186
+	assert processed["source_url"].is_unique
+	assert row_features["policy_id"].is_unique
+	assert processed["full_text"].fillna("").str.strip().ne("").all()
+	assert processed_quality.loc["missing_full_text", "value"] == 0
+	assert processed_quality.loc["full_text_contains_srdi", "value"] == 4475
+	assert set(dictionary["category"]) == {"supply", "demand", "environment"}
+	assert len(dictionary_coverage) == 85
+	assert (dictionary_coverage["records_hit"] > 0).all()
+	assert len(no_hit_records) == 2
+	assert text_quality.loc["row_feature_records", "value"] == 4475
+	assert text_quality.loc["province_year_feature_records", "value"] == 186
+	assert text_quality.loc["policy_records_without_tool_hit", "value"] == 2
+	assert text_quality.loc["high_coverage_terms_gte_25pct_records", "value"] == 41
+
+
+def test_manual_srdi_text_measure_comparison_outputs_are_consistent() -> None:
+	summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_text_measure_comparison_summary_v1.csv").set_index("metric")
+	row_transitions = pd.read_csv(ROOT / "outputs" / "manual_srdi_text_measure_row_transitions_v1.csv")
+	correlations = pd.read_csv(ROOT / "outputs" / "manual_srdi_text_measure_province_year_correlations_v1.csv")
+	high_coverage_terms = pd.read_csv(ROOT / "outputs" / "manual_srdi_text_measure_fulltext_high_coverage_terms_v1.csv")
+	recommendation = pd.read_csv(ROOT / "outputs" / "manual_srdi_text_measure_recommendation_v1.csv")
+
+	assert summary.loc["policy_records_compared", "value"] == 4475
+	assert summary.loc["v0_no_tool_hit_records", "value"] == 271
+	assert summary.loc["v1_no_tool_hit_records", "value"] == 2
+	assert summary.loc["v0_no_hit_recovered_by_v1", "value"] == 269
+	assert len(row_transitions) == 16
+	assert set(correlations["variable"]) == {
+		"supply_tool_policy_count",
+		"demand_tool_policy_count",
+		"environment_tool_policy_count",
+		"supply_tool_policy_share",
+		"demand_tool_policy_share",
+		"environment_tool_policy_share",
+		"avg_tool_category_count",
+	}
+	assert len(high_coverage_terms) == 41
+	assert recommendation.loc[recommendation["decision_area"].eq("main_text_measure"), "recommendation"].str.contains("full-text v1").item()
 
 
 def test_legacy_cache_fallback_is_first_page_only() -> None:

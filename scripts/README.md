@@ -32,3 +32,14 @@ just manual-srdi-processed-v0
 ```
 
 This command does not send network requests.
+
+`manual_srdi_fulltext_processed_corpus.py` builds the full-text v1 processed
+policy records from
+`data/interim/manual_policy_all_keyword_srdi_with_full_text.xlsx`. Prefer:
+
+```bash
+just manual-srdi-fulltext-processed-v1
+```
+
+This keeps the title/abstract v0 artifacts intact and writes independent
+full-text v1 outputs.
