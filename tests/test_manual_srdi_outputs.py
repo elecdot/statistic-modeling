@@ -135,3 +135,38 @@ def test_manual_srdi_fulltext_keyword_quality_outputs_are_consistent() -> None:
 		"very_high_coverage_terms",
 		"modeling_implication",
 	}
+
+
+def test_manual_srdi_label_rule_keywords_and_round1_sample_are_consistent() -> None:
+	rules = pd.read_csv(ROOT / "configs" / "manual_srdi_label_rule_keywords_v1.csv")
+	label_docs = pd.read_csv(ROOT / "data" / "processed" / "manual_policy_srdi_label_docs_v1.csv")
+	sampling_frame = pd.read_csv(ROOT / "data" / "processed" / "manual_policy_srdi_label_sampling_frame_v1.csv")
+	round1_sample = pd.read_csv(ROOT / "data" / "interim" / "manual_policy_srdi_deepseek_sample_round1_v1.csv")
+	pool_summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_label_sampling_pool_summary_v1.csv")
+	manifest = pd.read_csv(ROOT / "data" / "source-manifest.csv")
+
+	assert len(rules) == 106
+	assert set(rules["rule_role"]) == {"recall", "discriminative", "other_signal"}
+	assert set(rules["category"]) == {"supply", "demand", "environment", "other"}
+	assert {"broad", "medium", "specific"}.issuperset(set(rules["specificity"]))
+
+	assert len(label_docs) == 4475
+	assert len(sampling_frame) == 4475
+	assert len(round1_sample) == 800
+	assert round1_sample["doc_id"].is_unique
+	assert label_docs["doc_id"].is_unique
+	assert set(round1_sample["year"]) == {2020, 2021, 2022, 2023, 2024, 2025}
+	assert label_docs[["province", "year", "title", "clean_text"]].notna().all().all()
+	assert label_docs["clean_text"].str.strip().ne("").all()
+
+	assert round1_sample["sample_pool"].value_counts().to_dict() == {
+		"demand-like": 200,
+		"other-like": 200,
+		"supply-like": 200,
+		"environment-like": 200,
+	}
+	assert round1_sample.loc[round1_sample["sample_pool"].eq("other-like"), "other_signal_hit_count"].gt(0).all()
+	assert round1_sample.loc[round1_sample["sample_pool"].eq("other-like"), "pool_other_like_priority"].sum() == 200
+	assert pool_summary.loc[pool_summary["pool"].eq("demand-like"), "is_sufficient"].item()
+	assert pool_summary.loc[pool_summary["pool"].eq("other-like"), "is_sufficient"].item()
+	assert "手工收集_专精特新DeepSeek首轮样本v1" in set(manifest["source_name"])

@@ -1,5 +1,33 @@
 # Data Dictionary
 
+## Quick Lookup
+
+Use this section as the entry point before reading the full field dictionary.
+Search the listed file or section name in this document to jump to the detailed
+schema.
+
+| Need | Start Here | Purpose |
+| --- | --- | --- |
+| Current main upstream manual SRDI workbook | `data/interim/manual_policy_all_keyword_srdi.xlsx` | Metadata-only manual collection with title and abstract. |
+| Current main full-text manual SRDI workbook | `data/interim/manual_policy_all_keyword_srdi_with_full_text.xlsx` | Same record universe with collected full policy text. |
+| Main row-level full-text policy corpus | `data/processed/manual_policy_srdi_policy_records_fulltext_v1.csv` | Preferred 2020-2025 processed policy records for text mining. |
+| Baseline row-level title/abstract corpus | `data/processed/manual_policy_srdi_policy_records_v0.csv` | Earlier processed corpus retained for robustness and comparison. |
+| DID-facing policy-count intensity table | `data/processed/province_year_srdi_policy_intensity_v0.csv` | Balanced province-year policy count and keyword intensity candidate. |
+| Main full-text policy-tool features | `data/processed/manual_policy_srdi_text_features_fulltext_v1.csv` | Row-level title + full-text dictionary features. |
+| Main province-year full-text features | `data/processed/province_year_srdi_text_features_fulltext_v1.csv` | Province-year aggregate full-text policy-tool intensity proxies. |
+| Baseline title/abstract text features | `data/processed/manual_policy_srdi_text_features_v0.csv` | Row-level title + abstract dictionary features. |
+| Baseline province-year text features | `data/processed/province_year_srdi_text_features_v0.csv` | Province-year aggregate title/abstract text features. |
+| Policy-tool dictionary and review artifacts | `outputs/manual_policy_srdi_tool_dictionary_v0.csv` | Dictionary terms plus coverage and no-hit review outputs. |
+| DeepSeek label-rule sampling inputs | `Manual SRDI Label-Rule Preparation v1` | Label docs, sampling frame, keyword rules, and round-1 sample. |
+| Central gov.cn crawler outputs | `gov.cn XXGK Candidate Queues`; `gov.cn XXGK Detail Records` | Central-government list and detail crawler schemas. |
+| Central gov.cn processed corpus | `gov.cn XXGK Processed All-Policy Corpus v0` | Analysis-ready central-government all-policy text corpus. |
+| Quality reports | `outputs/*quality_report.csv`; `gov.cn XXGK Quality Reports` | Run checks, record counts, exclusions, and warning metrics. |
+
+Current analysis default: use the full-text v1 manual SRDI path for main
+policy-text intensity construction, keep title/abstract v0 as the robustness
+path, and use province-year outputs only after excluding `central` records where
+the table definition says so.
+
 ## Registered Datasets
 
 ### `data/interim/labeled_policy_text_manual_collection.xlsx`
@@ -593,3 +621,59 @@ The processed v0 report is a long-form metric table with columns
 719 processed records, 1 excluded timeout/detail failure, 11 accepted short-text
 records, 0 duplicate URLs, 0 duplicate text hashes, and 719 rows with official
 subject categories.
+
+### Manual SRDI Label-Rule Preparation v1
+
+Files:
+
+- `configs/manual_srdi_label_rule_keywords_v1.csv`
+- `data/processed/manual_policy_srdi_label_docs_v1.csv`
+- `data/processed/manual_policy_srdi_label_sampling_frame_v1.csv`
+- `data/interim/manual_policy_srdi_deepseek_sample_round1_v1.csv`
+
+These files prepare the full-text corpus for DeepSeek/MacBERT multi-label
+classification. Keyword rules are sampling and diagnostic aids, not final
+policy-tool labels.
+
+| Item | Value |
+| --- | --- |
+| Data layer | `configs`, `processed`, `interim` |
+| Generator | `notebooks/46_manual_srdi_label_rule_keywords.py` |
+| Policy universe | Manual SRDI full-text records, 2020-2025 |
+| Label docs shape | 4475 rows x 9 columns |
+| Sampling frame shape | 4475 rows |
+| Round-1 sample shape | 800 rows |
+| Sample pools | 200 each: supply-like, demand-like, environment-like, other-like |
+
+Rule keyword fields:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `category` | string | `supply`, `demand`, `environment`, or `other`. |
+| `term` | string | Literal Chinese substring rule. |
+| `rule_role` | string | `recall`, `discriminative`, or `other_signal`. |
+| `specificity` | string | `broad`, `medium`, or `specific`. |
+| `keep_for_sampling` | boolean | Whether the term is used when forming sample pools. |
+| `keep_for_interpretation` | boolean | Whether the term can be shown as an interpretation aid. |
+| `needs_context` | boolean | Whether isolated hits should be interpreted only with context. |
+| `notes` | string | Audit note for broad or boundary terms. |
+
+Label docs fields:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `doc_id` | string | Stable policy ID inherited from `policy_id`. |
+| `province` | string | `central` or local province unit. |
+| `year` | integer | Publication year. |
+| `title` | string | Policy title. |
+| `issuing_agency` | string | Issuing agency when available. |
+| `publish_date` | date-like string | Publication date. |
+| `source_url` | string / URL | Original policy URL. |
+| `clean_text` | string | Full text used for labeling prompts. |
+| `text_len` | integer | Full-text character length. |
+
+Sampling frame and round-1 sample add pool flags and rule-hit audit fields,
+including `pool_supply_like`, `pool_demand_like`,
+`pool_environment_like`, `pool_other_like`, recall/discriminative hit counts,
+other-signal hit counts, and matched-term strings. `sample_pool` in the
+round-1 sample records the primary sampling source and is not a final label.

@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_source_manifest_globs_do_not_mix_srdi_and_all_policy_cache() -> None:
 	manifest = pd.read_csv(ROOT / "data" / "source-manifest.csv").fillna("")
-	assert len(manifest) == 33
+	assert len(manifest) == 38
 	assert {
 		"generated_by",
 		"config_files",
@@ -37,3 +37,4 @@ def test_source_manifest_globs_do_not_mix_srdi_and_all_policy_cache() -> None:
 	assert len(all_matches) == 76
 	assert all("govcn_xxgk_all" not in path.name for path in srdi_matches)
 	assert all("govcn_xxgk_all" in path.name for path in all_matches)
+	assert "手工收集_专精特新DeepSeek首轮样本v1" in set(manifest["source_name"])

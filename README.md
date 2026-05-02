@@ -51,9 +51,11 @@ expansion.
   `notebooks/44_manual_srdi_fulltext_descriptive_analysis.py`.
 - [x] Audit full-text keyword quality and interpretation in
   `notebooks/45_manual_srdi_fulltext_keyword_quality.py`.
-- [ ] Confirm the paper convention for full-text v1 interpretation: use
-  province-year aggregate intensity proxies, avoid treating row-level dictionary
-  hits as final manual policy-tool labels.
+- [x] Convert keywords into label-rule sampling aids and build the round-1
+  DeepSeek sample in `notebooks/46_manual_srdi_label_rule_keywords.py`.
+- [ ] Run DeepSeek round-1 labeling on
+  `data/interim/manual_policy_srdi_deepseek_sample_round1_v1.csv`, following
+  `docs/label-intensity-construct-plan.md`.
 - [ ] Link `province_year_srdi_policy_intensity_v0.csv` to the downstream
   staggered-DID panel and finalize province-name compatibility.
 

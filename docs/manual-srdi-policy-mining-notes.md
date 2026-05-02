@@ -261,6 +261,43 @@ aggregate intensity and orientation proxies. It should avoid claiming that a
 single row-level hit is a final manual label or that supply, demand, and
 environment are mutually exclusive full-text classifications.
 
+## Label-Rule Sampling Preparation
+
+The label-rule preparation notebook is
+`notebooks/46_manual_srdi_label_rule_keywords.py`.
+
+This step changes the role of keywords. The full-text dictionary is no longer
+treated as a candidate final classifier. Instead, keywords are used as:
+
+- recall rules for broad candidate discovery;
+- discriminative rules for supply/demand/environment-like sampling pools;
+- other-signal rules for procedural or low-substance boundary samples;
+- diagnostics for later DeepSeek/MacBERT prediction conflicts.
+
+Current label-rule outputs:
+
+- rule keyword config:
+  `configs/manual_srdi_label_rule_keywords_v1.csv`;
+- label document table:
+  `data/processed/manual_policy_srdi_label_docs_v1.csv`;
+- sampling frame:
+  `data/processed/manual_policy_srdi_label_sampling_frame_v1.csv`;
+- round-1 DeepSeek sample:
+  `data/interim/manual_policy_srdi_deepseek_sample_round1_v1.csv`.
+
+Current preparation diagnostics:
+
+- label docs: 4475 records;
+- sampling frame: 4475 records;
+- round-1 sample: 800 records;
+- sample pools: 200 records each for supply-like, demand-like,
+  environment-like, and other-like;
+- sampling is deterministic, without replacement, and uses `random_state=42`.
+
+The next modeling stage should call DeepSeek on the round-1 sample and produce
+probabilistic multi-label outputs. The rule pools should not be interpreted as
+the final labels.
+
 ## Paper Drafting Notes
 
 Potential data-source wording:
