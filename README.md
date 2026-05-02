@@ -99,6 +99,7 @@ expansion.
 - `docs/govcn-xxgk-dev-notes.md` -- gov.cn XXGK development notes, milestone history, current artifact snapshot, and stage decisions.
 - `docs/manual-srdi-policy-mining-notes.md` -- manual SRDI policy mining milestone and paper-drafting notes.
 - `docs/manual-srdi-paper-draft-notes.md` -- stage paper-drafting notes for the manual SRDI data, full-text text-mining path, descriptive materials, and label-rule preparation.
+- `docs/research-design-and-variable-description.md` -- paper-section draft for research design, DID specification, policy-intensity construction, and variable definitions.
 - `docs/label-intensity-construct-plan.md` -- multi-label classification design for policy tools (supply-side, demand-side, environmental), including task definition, model architecture, and evaluation methodology.
 - `docs/govcn-xxgk-crawler.md` -- gov.cn XXGK crawler operation, mechanism, outputs, and demo checks.
 - `docs/source-manifest-guide.md` -- Data registration rules for `data/source-manifest.csv`.
