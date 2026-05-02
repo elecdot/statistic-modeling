@@ -294,9 +294,12 @@ Current preparation diagnostics:
   environment-like, and other-like;
 - sampling is deterministic, without replacement, and uses `random_state=42`.
 
-The next modeling stage should call DeepSeek on the round-1 sample and produce
-probabilistic multi-label outputs. The rule pools should not be interpreted as
-the final labels.
+The DeepSeek round-1 labeling command is
+`scripts/manual_srdi_deepseek_round1_label.py`. It reads the API key from
+`DEEPSEEK_API_KEY`, caches raw API responses under
+`data/raw/json/manual_srdi_deepseek_round1_v1/`, and writes parsed labels to
+`data/interim/manual_policy_srdi_deepseek_labels_round1_v1.csv`. The rule pools
+should not be interpreted as the final labels.
 
 ## Paper Drafting Notes
 

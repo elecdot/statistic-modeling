@@ -40,3 +40,11 @@ manual-srdi-processed-v0:
 # Build processed records from the manual SRDI workbook with full text.
 manual-srdi-fulltext-processed-v1:
     UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_fulltext_processed_corpus.py
+
+# Validate DeepSeek round-1 labeling prompts and outputs without API calls.
+manual-srdi-deepseek-round1-dry-run:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_deepseek_round1_label.py --dry-run --limit 3 --labels-output /tmp/manual_policy_srdi_deepseek_labels_round1_dry_run.csv --quality-output /tmp/manual_policy_srdi_deepseek_round1_dry_run_quality_report.csv --raw-output-dir /tmp/manual_srdi_deepseek_round1_dry_run
+
+# Run DeepSeek round-1 labeling. Requires DEEPSEEK_API_KEY in the shell.
+manual-srdi-deepseek-round1:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_deepseek_round1_label.py --resume

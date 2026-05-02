@@ -43,3 +43,21 @@ just manual-srdi-fulltext-processed-v1
 
 This keeps the title/abstract v0 artifacts intact and writes independent
 full-text v1 outputs.
+
+`manual_srdi_deepseek_round1_label.py` labels the deterministic 800-record
+round-1 sample with a DeepSeek-compatible chat API and writes cached raw
+responses plus parsed multi-label outputs. It reads the API key only from
+`DEEPSEEK_API_KEY`.
+
+Validate the prompt and output plumbing without network calls:
+
+```bash
+just manual-srdi-deepseek-round1-dry-run
+```
+
+Run the live round-1 labeling only after exporting the key in the shell:
+
+```bash
+export DEEPSEEK_API_KEY="..."
+just manual-srdi-deepseek-round1
+```

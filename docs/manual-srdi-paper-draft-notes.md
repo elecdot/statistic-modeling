@@ -203,6 +203,12 @@ full-text descriptive notebook 为
 - sample pools:
   `supply-like`, `demand-like`, `environment-like`, `other-like`, each 200 records.
 
+DeepSeek round-1 labeling command is
+`scripts/manual_srdi_deepseek_round1_label.py`. It is designed as an auditable
+labeling step: prompts are generated from the prepared sample, raw API responses
+are cached, parsed JSON labels are written separately, and a run quality report
+records success, failure, and sample-pool counts.
+
 在这一设计中，最终输出不再是互斥类别，而是四个概率：
 
 - `p_supply`;

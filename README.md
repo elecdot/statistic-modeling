@@ -53,8 +53,11 @@ expansion.
   `notebooks/45_manual_srdi_fulltext_keyword_quality.py`.
 - [x] Convert keywords into label-rule sampling aids and build the round-1
   DeepSeek sample in `notebooks/46_manual_srdi_label_rule_keywords.py`.
-- [ ] Run DeepSeek round-1 labeling on
-  `data/interim/manual_policy_srdi_deepseek_sample_round1_v1.csv`, following
+- [x] Build the DeepSeek round-1 labeling command in
+  `scripts/manual_srdi_deepseek_round1_label.py`; use dry-run first, then live
+  run with `DEEPSEEK_API_KEY` exported in the shell.
+- [ ] Run the live DeepSeek round-1 labeling and review
+  `data/interim/manual_policy_srdi_deepseek_labels_round1_v1.csv`, following
   `docs/label-intensity-construct-plan.md`.
 - [ ] Link `province_year_srdi_policy_intensity_v0.csv` to the downstream
   staggered-DID panel and finalize province-name compatibility.
