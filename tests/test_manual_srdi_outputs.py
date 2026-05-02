@@ -170,3 +170,31 @@ def test_manual_srdi_label_rule_keywords_and_round1_sample_are_consistent() -> N
 	assert pool_summary.loc[pool_summary["pool"].eq("demand-like"), "is_sufficient"].item()
 	assert pool_summary.loc[pool_summary["pool"].eq("other-like"), "is_sufficient"].item()
 	assert "手工收集_专精特新DeepSeek首轮样本v1" in set(manifest["source_name"])
+
+
+def test_manual_srdi_macbert_training_data_outputs_are_consistent() -> None:
+	dataset = pd.read_csv(ROOT / "data" / "processed" / "manual_policy_srdi_macbert_training_dataset_v1.csv")
+	quality = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_training_data_quality_report_v1.csv").set_index("metric")
+	split_summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_training_split_summary_v1.csv").set_index("split")
+	label_balance = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_training_label_balance_v1.csv")
+	pos_weight = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_training_pos_weight_v1.csv").set_index("label")
+
+	assert len(dataset) == 800
+	assert dataset["doc_id"].is_unique
+	assert dataset["split"].value_counts().to_dict() == {"train": 557, "test": 123, "validation": 120}
+	assert dataset["model_text"].fillna("").str.strip().ne("").all()
+	assert set(dataset["sample_pool"].value_counts().to_dict().values()) == {200}
+
+	assert quality.loc["successful_label_rows", "value"] == 800
+	assert quality.loc["missing_model_text", "value"] == 0
+	assert split_summary.loc["train", "records"] == 557
+	assert split_summary.loc["validation", "records"] == 120
+	assert split_summary.loc["test", "records"] == 123
+	assert set(label_balance["label"]) == {"supply", "demand", "environment", "other"}
+	assert pos_weight.loc["other", "pos_weight"] > pos_weight.loc["demand", "pos_weight"]
+	assert pos_weight.loc["environment", "pos_weight"] < 1
+
+	for split_name, expected_rows in {"train": 557, "validation": 120, "test": 123}.items():
+		path = ROOT / "data" / "processed" / "manual_policy_srdi_macbert_training_v1" / f"{split_name}.jsonl"
+		rows = [line for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+		assert len(rows) == expected_rows

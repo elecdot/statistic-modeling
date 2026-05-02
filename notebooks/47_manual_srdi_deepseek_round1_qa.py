@@ -177,6 +177,19 @@ pool_summary["success_share"] = pool_summary["success"] / pool_summary["records"
 probability_summary = success[PROBABILITY_COLUMNS].agg(["count", "mean", "std", "min", "median", "max"]).T.reset_index(names="probability")
 probability_summary
 
+# %%
+probability_over_06_counts = (
+	success[PROBABILITY_COLUMNS]
+	.gt(0.6)
+	.sum()
+	.rename("count")
+	.rename_axis("category")
+	.reset_index()
+	.sort_values(["count", "category"], ascending=[False, True])
+	.reset_index(drop=True)
+)
+probability_over_06_counts
+
 # %% [markdown]
 # ## 5. Readiness Decision
 

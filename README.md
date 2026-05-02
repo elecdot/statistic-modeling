@@ -63,8 +63,12 @@ expansion.
 - [x] Repair the single failed DeepSeek label via cached-response parsing
   fallback, then rerun round-1 QA. Current QA reports 800 successful labels,
   zero failed labels, and `enter_macbert_training_preparation`.
-- [ ] Enter the MacBERT training-data preparation path in
-  `docs/label-intensity-construct-plan.md`.
+- [x] Prepare MacBERT training data in
+  `notebooks/48_manual_srdi_macbert_training_data.py`: deterministic
+  train/validation/test JSONL files, label-balance QA, and `pos_weight`
+  candidates.
+- [ ] Implement the MacBERT training script and evaluate validation/test
+  multi-label metrics before predicting the full 4,475-document corpus.
 - [ ] Link `province_year_srdi_policy_intensity_v0.csv` to the downstream
   staggered-DID panel and finalize province-name compatibility.
 
