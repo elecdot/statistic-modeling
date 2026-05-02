@@ -265,3 +265,67 @@ def test_manual_srdi_policy_intensity_variable_selection_outputs_are_consistent(
 		"srdi_supply_intensity;srdi_demand_intensity;srdi_environment_intensity"
 	)
 	assert "ready for panel merge" in decision.loc["did_handoff_status", "decision"]
+
+
+def test_manual_srdi_did_policy_intensity_handoff_outputs_are_consistent() -> None:
+	handoff_qa = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_handoff_qa_v1.csv")
+	variable_summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_variable_summary_v1.csv")
+	province_crosswalk = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_province_crosswalk_template_v1.csv")
+	boundary_summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_boundary_review_summary_v1.csv")
+	handoff_decision = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_handoff_decision_v1.csv").set_index(
+		"decision_area"
+	)
+
+	blocking_checks = handoff_qa.loc[handoff_qa["blocking_for_did_merge"]]
+	assert not blocking_checks.empty
+	assert blocking_checks["status"].eq("pass").all()
+	assert "boundary_samples_require_review" in set(handoff_qa["check"])
+
+	assert len(province_crosswalk) == 31
+	assert province_crosswalk["present_in_policy_variables"].all()
+	assert province_crosswalk["did_merge_key_recommended"].is_unique
+	assert "新疆" in set(province_crosswalk["did_merge_key_recommended"])
+
+	assert {
+		"srdi_supply_intensity",
+		"srdi_demand_intensity",
+		"srdi_environment_intensity",
+		"srdi_policy_count",
+	}.issubset(set(variable_summary["variable"]))
+	assert variable_summary["missing_count"].eq(0).all()
+	assert len(boundary_summary) == 5
+	assert boundary_summary["records"].sum() == 150
+	assert handoff_decision.loc["policy_side_handoff_status", "decision"] == "ready_for_first_did_merge"
+
+
+def test_manual_srdi_did_ready_policy_intensity_panel_is_consistent() -> None:
+	panel = pd.read_csv(ROOT / "data" / "processed" / "manual_srdi_did_policy_intensity_panel_v1.csv")
+	quality = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_quality_report_v1.csv").set_index(
+		"metric"
+	)
+	variable_map = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_variable_map_v1.csv")
+
+	main_variables = {
+		"srdi_supply_intensity",
+		"srdi_demand_intensity",
+		"srdi_environment_intensity",
+	}
+	merge_keys = {"did_province_key", "did_year"}
+
+	assert len(panel) == 186
+	assert panel["did_province_key"].nunique() == 31
+	assert set(panel["did_year"]) == {2020, 2021, 2022, 2023, 2024, 2025}
+	assert panel["policy_panel_id"].is_unique
+	assert panel[list(merge_keys)].duplicated().sum() == 0
+	assert main_variables.issubset(panel.columns)
+	assert panel[list(main_variables)].notna().all().all()
+	assert (panel[list(main_variables)] >= 0).all().all()
+	assert {f"{variable}_z" for variable in main_variables}.issubset(panel.columns)
+	assert panel["needs_firm_panel_confirmation"].all()
+	assert "新疆" in set(panel["did_province_key"])
+
+	assert quality.loc["panel_rows", "status"] == "pass"
+	assert quality.loc["main_variable_missing_values", "value"] == "0"
+	assert quality.loc["firm_panel_confirmation_required", "status"] == "needs_external_data"
+	assert merge_keys.issubset(set(variable_map["variable"]))
+	assert main_variables.issubset(set(variable_map.loc[variable_map["did_use"].eq("main_moderator"), "variable"]))

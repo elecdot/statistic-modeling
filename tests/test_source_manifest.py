@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_source_manifest_globs_do_not_mix_srdi_and_all_policy_cache() -> None:
 	manifest = pd.read_csv(ROOT / "data" / "source-manifest.csv").fillna("")
-	assert len(manifest) == 49
+	assert len(manifest) == 51
 	assert {
 		"generated_by",
 		"config_files",
@@ -44,3 +44,4 @@ def test_source_manifest_globs_do_not_mix_srdi_and_all_policy_cache() -> None:
 	assert "手工收集_专精特新MacBERT全量预测v1" in set(manifest["source_name"])
 	assert "手工收集_省份年份MacBERT政策工具强度v1" in set(manifest["source_name"])
 	assert "手工收集_省份年份专精特新DID政策文本变量v1" in set(manifest["source_name"])
+	assert "手工收集_专精特新DID政策强度面板v1" in set(manifest["source_name"])

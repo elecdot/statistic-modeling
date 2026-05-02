@@ -88,11 +88,24 @@ expansion.
   `srdi_supply_intensity`, `srdi_demand_intensity`, and
   `srdi_environment_intensity`; policy count, filtered sums, hard-label counts,
   and dictionary counts are retained as controls or robustness variables.
+- [x] Build the policy-side DID handoff notebook in
+  `notebooks/51_did_policy_intensity_handoff.py`. Current QA marks
+  `province_year_srdi_policy_text_variables_v1.csv` as
+  `ready_for_first_did_merge`, with a province-name crosswalk template ready for
+  enterprise-panel confirmation.
+- [x] Build the final policy-side DID-ready panel in
+  `notebooks/52_did_ready_policy_intensity_panel.py`:
+  `data/processed/manual_srdi_did_policy_intensity_panel_v1.csv`. This table
+  carries stable merge keys `did_province_key` and `did_year`, main policy-tool
+  moderators, robustness variables, audit variables, and z-score convenience
+  variables.
 - [ ] Review `outputs/manual_srdi_macbert_full_corpus_boundary_samples_v1.csv`
   before final paper freeze, mainly for demand-threshold and `other` boundary
   cases.
-- [ ] Link `province_year_srdi_policy_text_variables_v1.csv` to the downstream
-  staggered-DID panel and finalize province-name compatibility.
+- [ ] Load the downstream enterprise panel, confirm province-name compatibility
+  against `outputs/manual_srdi_did_policy_intensity_province_crosswalk_template_v1.csv`,
+  and merge `manual_srdi_did_policy_intensity_panel_v1.csv` by
+  `did_province_key` / `did_year`.
 
 ## Documentations
 
