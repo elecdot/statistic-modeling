@@ -56,3 +56,7 @@ manual-srdi-macbert-train-dry-run:
 # Train the first MacBERT multi-label classifier. Requires torch, transformers, and model download access.
 manual-srdi-macbert-train:
     UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_train_macbert_multilabel.py --resume
+
+# Predict policy-tool probabilities for the full manual SRDI full-text corpus.
+manual-srdi-macbert-predict-full:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_macbert_predict_full_corpus.py

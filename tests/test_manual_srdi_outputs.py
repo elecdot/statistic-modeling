@@ -198,3 +198,28 @@ def test_manual_srdi_macbert_training_data_outputs_are_consistent() -> None:
 		path = ROOT / "data" / "processed" / "manual_policy_srdi_macbert_training_v1" / f"{split_name}.jsonl"
 		rows = [line for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 		assert len(rows) == expected_rows
+
+
+def test_manual_srdi_macbert_full_corpus_qa_outputs_are_consistent() -> None:
+	qa_summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_full_corpus_qa_summary_v1.csv").set_index("metric")
+	by_year = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_full_corpus_probability_by_year_v1.csv")
+	by_province = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_full_corpus_probability_by_province_v1.csv")
+	dictionary_comparison = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_full_corpus_dictionary_comparison_v1.csv")
+	boundary_samples = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_full_corpus_boundary_samples_v1.csv")
+	decision = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_full_corpus_decision_table_v1.csv").set_index("check")
+
+	assert int(qa_summary.loc["classified_rows", "value"]) == 4475
+	assert int(qa_summary.loc["province_year_rows", "value"]) == 186
+	assert qa_summary.loc["panel_is_balanced_31x6", "value"] == "True"
+	assert set(by_year["publish_year"]) == {2020, 2021, 2022, 2023, 2024, 2025}
+	assert len(by_province) == 31
+	assert set(dictionary_comparison["category"]) == {"supply", "demand", "environment"}
+	assert len(boundary_samples) >= 100
+	assert {
+		"highest_p_other",
+		"low_confidence_tool_boundary",
+		"all_three_tools_high",
+		"demand_near_threshold",
+		"macbert_dictionary_conflict",
+	}.issubset(set(boundary_samples["review_reason"]))
+	assert decision.loc["current_decision", "status"] == "ready_for_did_v1"

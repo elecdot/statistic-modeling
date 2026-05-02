@@ -121,3 +121,18 @@ The script writes the model checkpoint to
 `outputs/manual_srdi_macbert_multilabel_metrics_v1.csv`, test predictions to
 `outputs/manual_srdi_macbert_multilabel_test_predictions_v1.csv`, and run QA to
 `outputs/manual_srdi_macbert_multilabel_quality_report_v1.csv`.
+
+`manual_srdi_macbert_predict_full_corpus.py` applies the trained checkpoint to
+all 4,475 full-text policy records and aggregates policy-tool probabilities to a
+balanced province-year table:
+
+```bash
+just manual-srdi-macbert-predict-full
+```
+
+The script uses the same model-text construction and hard-label thresholds as
+the training workflow. It writes row-level predictions to
+`data/processed/manual_policy_srdi_policy_classified_fulltext_v1.csv`,
+province-year tool intensity to
+`data/processed/province_year_srdi_macbert_tool_intensity_v1.csv`, and prediction
+QA tables under `outputs/manual_srdi_macbert_full_corpus_*_v1.csv`.

@@ -71,9 +71,20 @@ expansion.
   `scripts/manual_srdi_train_macbert_multilabel.py`, with dry-run validation,
   explicit PyTorch training loop, validation/test metrics, model checkpoint
   output, and test-set predictions.
-- [ ] Run the live MacBERT training command after model-download access is
-  available, then review validation/test multi-label metrics before predicting
-  the full 4,475-document corpus.
+- [x] Run the live MacBERT training command and review validation/test
+  multi-label metrics. Current round-1 model is adequate for full-corpus
+  prediction, with the three main tool labels performing substantially better
+  than the boundary `other` label.
+- [x] Predict the full 4,475-document full-text corpus and build the
+  DID-facing MacBERT province-year tool-intensity table:
+  `data/processed/province_year_srdi_macbert_tool_intensity_v1.csv`.
+- [x] Review full-corpus MacBERT prediction distributions in
+  `notebooks/49_manual_srdi_macbert_full_corpus_qa.py`. Current decision table
+  marks the v1 outputs as `ready_for_did_v1`; round-2 labeling is optional after
+  boundary-sample review.
+- [ ] Review `outputs/manual_srdi_macbert_full_corpus_boundary_samples_v1.csv`
+  before final paper freeze, mainly for demand-threshold and `other` boundary
+  cases.
 - [ ] Link `province_year_srdi_policy_intensity_v0.csv` to the downstream
   staggered-DID panel and finalize province-name compatibility.
 
