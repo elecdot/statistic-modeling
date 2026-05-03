@@ -18,6 +18,13 @@ Most generated outputs should stay out of Git.
   processed manual SRDI policy-record table and province-year intensity table.
 - `manual_policy_srdi_processed_fulltext_v1_quality_report.csv`: QA summary for
   the processed manual SRDI full-text policy records.
+- `manual_policy_srdi_processed_fulltext_v2_quality_report.csv`: QA summary for
+  the 2019-2024 processed manual SRDI full-text v2 corpus and base count panel.
+- `manual_policy_srdi_2019_supplement_quality_report_v2.csv`: source-specific
+  QA for the 2019 supplementary full-text workbook.
+- `manual_policy_srdi_v2_jurisdiction_review_candidates.csv`: audit candidates
+  for 2019 rows whose local source label may reflect reposting rather than
+  policy jurisdiction.
 - `manual_policy_srdi_text_mining_v0_quality_report.csv`: QA summary for the
   manual SRDI title/abstract text-mining v0 feature outputs.
 - `manual_policy_srdi_text_mining_fulltext_v1_quality_report.csv`: QA summary

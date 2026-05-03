@@ -41,6 +41,10 @@ manual-srdi-processed-v0:
 manual-srdi-fulltext-processed-v1:
     UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_fulltext_processed_corpus.py
 
+# Build the 2019-2024 v2 full-text corpus and province-year policy-count panel.
+manual-srdi-fulltext-processed-v2:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_fulltext_processed_corpus_v2.py
+
 # Validate DeepSeek round-1 labeling prompts and outputs without API calls.
 manual-srdi-deepseek-round1-dry-run:
     UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_deepseek_round1_label.py --dry-run --limit 3 --labels-output /tmp/manual_policy_srdi_deepseek_labels_round1_dry_run.csv --quality-output /tmp/manual_policy_srdi_deepseek_round1_dry_run_quality_report.csv --raw-output-dir /tmp/manual_srdi_deepseek_round1_dry_run

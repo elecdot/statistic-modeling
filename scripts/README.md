@@ -48,6 +48,21 @@ just manual-srdi-fulltext-processed-v1
 This keeps the title/abstract v0 artifacts intact and writes independent
 full-text v1 outputs.
 
+`manual_srdi_fulltext_processed_corpus_v2.py` builds the 2019-2024 full-text v2
+corpus by stacking the current full-text workbook's 2020-2024 records with the
+2019 supplementary workbook at
+`data/interim/manual_policy_all_keyword_srdi_2019_supplementary.xlsx`. It keeps
+v1 outputs intact, writes a v2 row-level corpus, a balanced province-year
+policy-count table, QA reports, and a 2019 jurisdiction-review candidate table.
+Prefer:
+
+```bash
+just manual-srdi-fulltext-processed-v2
+```
+
+This command does not run notebooks, MacBERT prediction, or downstream DID
+construction.
+
 `manual_srdi_deepseek_round1_label.py` labels the deterministic 800-record
 round-1 sample with a DeepSeek-compatible chat API and writes cached raw
 responses plus parsed multi-label outputs. It reads the API key only from

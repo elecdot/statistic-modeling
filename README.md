@@ -102,10 +102,6 @@ expansion.
 - [ ] Review `outputs/manual_srdi_macbert_full_corpus_boundary_samples_v1.csv`
   before final paper freeze, mainly for demand-threshold and `other` boundary
   cases.
-- [ ] Load the downstream enterprise panel, confirm province-name compatibility
-  against `outputs/manual_srdi_did_policy_intensity_province_crosswalk_template_v1.csv`,
-  and merge `manual_srdi_did_policy_intensity_panel_v1.csv` by
-  `did_province_key` / `did_year`.
 
 ## Documentations
 

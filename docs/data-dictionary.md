@@ -10,7 +10,10 @@ schema.
 | --- | --- | --- |
 | Current main upstream manual SRDI workbook | `data/interim/manual_policy_all_keyword_srdi.xlsx` | Metadata-only manual collection with title and abstract. |
 | Current main full-text manual SRDI workbook | `data/interim/manual_policy_all_keyword_srdi_with_full_text.xlsx` | Same record universe with collected full policy text. |
+| 2019 supplementary full-text SRDI workbook | `data/interim/manual_policy_all_keyword_srdi_2019_supplementary.xlsx` | Supplementary 2019 policy full-text records for the v2 corpus rebuild. |
 | Manual SRDI jurisdiction corrections | `configs/manual_srdi_jurisdiction_overrides_v1.csv` | Reviewed corrections for reposted policies whose source site and policy jurisdiction differ. |
+| v2 row-level full-text policy corpus | `data/processed/manual_policy_srdi_policy_records_fulltext_v2.csv` | 2019-2024 policy-side corpus for the next v2 text-mining chain. |
+| v2 base province-year policy count table | `data/processed/province_year_srdi_policy_intensity_v2.csv` | Balanced 31 province x 2019-2024 local policy-count table. |
 | Main row-level full-text policy corpus | `data/processed/manual_policy_srdi_policy_records_fulltext_v1.csv` | Preferred 2020-2025 processed policy records for text mining. |
 | Baseline row-level title/abstract corpus | `data/processed/manual_policy_srdi_policy_records_v0.csv` | Earlier processed corpus retained for robustness and comparison. |
 | DID-facing policy-count intensity table | `data/processed/province_year_srdi_policy_intensity_v0.csv` | Balanced province-year policy count and keyword intensity candidate. |
@@ -30,10 +33,10 @@ schema.
 | Central gov.cn processed corpus | `gov.cn XXGK Processed All-Policy Corpus v0` | Analysis-ready central-government all-policy text corpus. |
 | Quality reports | `outputs/*quality_report.csv`; `gov.cn XXGK Quality Reports` | Run checks, record counts, exclusions, and warning metrics. |
 
-Current analysis default: use the full-text v1 manual SRDI path for main
-policy-text intensity construction, keep title/abstract v0 as the robustness
-path, and use province-year outputs only after excluding `central` records where
-the table definition says so.
+Current analysis default before the v2 rebuild remains the full-text v1 manual
+SRDI path. The v2 corpus and base count table are the new 2019-2024 inputs for
+the next policy-text mining chain, but v2 dictionary, MacBERT, variable
+selection, and final DID-ready outputs have not yet been rebuilt.
 
 ## Registered Datasets
 
@@ -174,6 +177,88 @@ Field meanings match `manual_policy_all_keyword_srdi.xlsx`, except:
 | Field | Type | Description |
 | --- | --- | --- |
 | `原文` | string | Collected full policy text. The current workbook has no missing full text; 2020-2025 records have median full-text length of 5359 Chinese characters. |
+
+### `data/interim/manual_policy_all_keyword_srdi_2019_supplementary.xlsx`
+
+Supplementary full-text workbook for 2019 SRDI keyword policy records. This file
+is used only by the v2 full-text corpus path and does not alter v1 artifacts.
+
+| Item | Value |
+| --- | --- |
+| Data layer | `interim` |
+| File format | Excel workbook (`.xlsx`) |
+| Sheet | `tableData` |
+| Observation unit | One manually collected policy record |
+| Current shape | 190 rows x 9 columns |
+| Date coverage in file | 2019-01-02 through 2019-12-31 |
+| Main use | Add 2019 policy records to the v2 2019-2024 policy-side corpus |
+| Quality report | `outputs/manual_policy_srdi_2019_supplement_quality_report_v2.csv` |
+
+Field meanings match `manual_policy_all_keyword_srdi_with_full_text.xlsx`,
+except:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `原文文本` | string | Collected full policy text, standardized to `full_text` in v2. One 2019 row is retained with empty full text and `full_text_missing=True`. |
+
+The 2019 supplement does not contain workbook keyword-count metadata. The v2
+processor derives `keyword_count` from literal `专精特新` occurrences in title
+plus full text and records `keyword_count_source=derived_from_text`.
+
+### `data/processed/manual_policy_srdi_policy_records_fulltext_v2.csv`
+
+Processed full-text policy-record table for the 2019-2024 v2 policy-side corpus.
+It stacks 2019 records from
+`data/interim/manual_policy_all_keyword_srdi_2019_supplementary.xlsx` with
+2020-2024 records from
+`data/interim/manual_policy_all_keyword_srdi_with_full_text.xlsx`. It applies
+the existing jurisdiction override config but leaves newly detected 2019
+jurisdiction candidates for separate review.
+
+| Item | Value |
+| --- | --- |
+| Data layer | `processed` |
+| Observation unit | One manually collected SRDI-related policy record |
+| Current shape | 3989 rows x 35 columns |
+| Date scope | 2019-2024 |
+| Source URL uniqueness | Unique `source_url` |
+| Policy ID uniqueness | Unique `policy_id` |
+| Generator | `scripts/manual_srdi_fulltext_processed_corpus_v2.py` |
+| Quality report | `outputs/manual_policy_srdi_processed_fulltext_v2_quality_report.csv` |
+
+Additional v2 audit fields:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `source_workbook` | string | Source Excel workbook name for row-level provenance. |
+| `source_schema_version` | string | `current_fulltext_workbook_v1` or `supplement_2019_fulltext_v1`. |
+| `keyword_count_source` | string | `workbook_metadata` for current workbook rows, `derived_from_text` for 2019 supplement rows. |
+| `full_text_missing` | boolean | Whether the standardized `full_text` field is empty. Empty rows are retained. |
+| `full_text_fallback_for_model` | boolean | Marks rows where later model-input code should construct fallback text from metadata and title. |
+| `needs_jurisdiction_review` | boolean | Whether the 2019 supplement row is an audit candidate for reposted central or out-of-province policies. |
+| `jurisdiction_review_reason` | string | Audit-only reason, such as central-ministry terms or a title prefix suggesting another province. |
+| `jurisdiction_review_suggested_province` | string | Audit-only suggested jurisdiction for later manual review. |
+| `jurisdiction_review_evidence` | string | Matched terms or title-prefix evidence. |
+
+### `data/processed/province_year_srdi_policy_intensity_v2.csv`
+
+Balanced local province-year policy-count panel derived from
+`manual_policy_srdi_policy_records_fulltext_v2.csv`. This is a foundation table
+for later v2 text-mining aggregation, not a final DID-ready panel.
+
+| Item | Value |
+| --- | --- |
+| Data layer | `processed` |
+| Observation unit | One local province-year |
+| Current shape | 186 rows x 14 columns |
+| Date scope | 2019-2024 |
+| Province units | 31 local province units; `central` excluded |
+| Generator | `scripts/manual_srdi_fulltext_processed_corpus_v2.py` |
+| Quality report | `outputs/manual_policy_srdi_processed_fulltext_v2_quality_report.csv` |
+
+Core fields include `srdi_policy_count`, keyword-count summaries, full-text
+missing/fallback counts, agency missingness, unique agency count, and
+`jurisdiction_review_candidate_count`.
 
 ### `data/processed/manual_policy_srdi_policy_records_fulltext_v1.csv`
 
