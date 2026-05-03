@@ -60,6 +60,7 @@ PROVINCE_RANKING_OUTPUT = OUTPUT_DIR / "manual_srdi_did_policy_intensity_panel_p
 REGION_TEMPLATE_OUTPUT = OUTPUT_DIR / "manual_srdi_did_policy_intensity_panel_region_group_template_v2.csv"
 REGION_SUMMARY_OUTPUT = OUTPUT_DIR / "manual_srdi_did_policy_intensity_panel_region_summary_v2.csv"
 CORRELATION_OUTPUT = OUTPUT_DIR / "manual_srdi_did_policy_intensity_panel_correlations_v2.csv"
+STRUCTURE_CORRELATION_OUTPUT = OUTPUT_DIR / "manual_srdi_did_policy_intensity_panel_structure_correlations_v2.csv"
 OUTLIER_AUDIT_OUTPUT = OUTPUT_DIR / "manual_srdi_did_policy_intensity_panel_outlier_audit_v2.csv"
 FINAL_QA_OUTPUT = OUTPUT_DIR / "manual_srdi_did_policy_intensity_panel_final_qa_v2.csv"
 HANDOFF_NOTES_OUTPUT = OUTPUT_DIR / "manual_srdi_did_policy_intensity_panel_handoff_notes_v2.csv"
@@ -68,6 +69,7 @@ YEAR_TREND_FIG = OUTPUT_DIR / "manual_srdi_did_policy_intensity_panel_fig_year_t
 PROVINCE_RANKING_FIG = OUTPUT_DIR / "manual_srdi_did_policy_intensity_panel_fig_province_ranking_v2.png"
 REGION_STRUCTURE_FIG = OUTPUT_DIR / "manual_srdi_did_policy_intensity_panel_fig_region_structure_v2.png"
 CORRELATION_FIG = OUTPUT_DIR / "manual_srdi_did_policy_intensity_panel_fig_correlations_v2.png"
+STRUCTURE_CORRELATION_FIG = OUTPUT_DIR / "manual_srdi_did_policy_intensity_panel_fig_structure_correlations_v2.png"
 
 YEARS = list(range(2019, 2025))
 MAIN_VARIABLES = [
@@ -118,6 +120,19 @@ CORRELATION_VARIABLES = [
 	"dict_supply_policy_count",
 	"dict_demand_policy_count",
 	"dict_environment_policy_count",
+]
+STRUCTURE_CORRELATION_VARIABLES = [
+	"srdi_supply_probability_share",
+	"srdi_demand_probability_share",
+	"srdi_environment_probability_share",
+	"srdi_supply_probability_share_filtered",
+	"srdi_demand_probability_share_filtered",
+	"srdi_environment_probability_share_filtered",
+	"dict_supply_policy_share",
+	"dict_demand_policy_share",
+	"dict_environment_policy_share",
+	"srdi_valid_tool_policy_share",
+	"srdi_other_avg_probability",
 ]
 OUTLIER_VARIABLES = [
 	"srdi_policy_count",
@@ -425,6 +440,11 @@ save_figure(fig, REGION_STRUCTURE_FIG)
 
 # %% [markdown]
 # ## 6. Correlation Diagnostics
+#
+# The first heatmap uses total policy-count and probability-sum variables. It is
+# expected to show very high positive correlations because these measures are
+# strongly volume-driven. The second heatmap uses structure and average
+# variables, which is more informative for policy-tool composition.
 
 # %%
 corr = panel[CORRELATION_VARIABLES].corr()
@@ -464,6 +484,47 @@ ax.set_xticklabels(short_labels, rotation=45, ha="right")
 ax.set_yticklabels(short_labels)
 fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
 save_figure(fig, CORRELATION_FIG)
+fig
+
+# %%
+structure_corr = panel[STRUCTURE_CORRELATION_VARIABLES].corr()
+structure_correlation_rows = []
+for left in STRUCTURE_CORRELATION_VARIABLES:
+	for right in STRUCTURE_CORRELATION_VARIABLES:
+		structure_correlation_rows.append(
+			{
+				"left_variable": left,
+				"right_variable": right,
+				"pearson_corr": float(structure_corr.loc[left, right]),
+			}
+		)
+structure_correlations = pd.DataFrame(structure_correlation_rows)
+structure_correlations.to_csv(STRUCTURE_CORRELATION_OUTPUT, index=False)
+structure_correlations.head()
+
+# %%
+fig, ax = plt.subplots(figsize=(7.4, 6.4))
+image = ax.imshow(structure_corr, vmin=-1, vmax=1, cmap="coolwarm")
+ax.set_xticks(range(len(STRUCTURE_CORRELATION_VARIABLES)))
+ax.set_yticks(range(len(STRUCTURE_CORRELATION_VARIABLES)))
+structure_short_labels = [
+	"supply_sh",
+	"demand_sh",
+	"env_sh",
+	"supply_f_sh",
+	"demand_f_sh",
+	"env_f_sh",
+	"dict_s_sh",
+	"dict_d_sh",
+	"dict_e_sh",
+	"valid_sh",
+	"other_avg",
+]
+ax.set_xticklabels(structure_short_labels, rotation=45, ha="right")
+ax.set_yticklabels(structure_short_labels)
+fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
+save_figure(fig, STRUCTURE_CORRELATION_FIG)
+fig
 
 # %% [markdown]
 # ## 7. Outlier Audit
@@ -589,6 +650,7 @@ output_checklist = pd.DataFrame(
 		{"artifact": "region_template", "path": REGION_TEMPLATE_OUTPUT, "rows": len(region_template), "exists": REGION_TEMPLATE_OUTPUT.exists()},
 		{"artifact": "region_summary", "path": REGION_SUMMARY_OUTPUT, "rows": len(region_summary), "exists": REGION_SUMMARY_OUTPUT.exists()},
 		{"artifact": "correlations", "path": CORRELATION_OUTPUT, "rows": len(correlations), "exists": CORRELATION_OUTPUT.exists()},
+		{"artifact": "structure_correlations", "path": STRUCTURE_CORRELATION_OUTPUT, "rows": len(structure_correlations), "exists": STRUCTURE_CORRELATION_OUTPUT.exists()},
 		{"artifact": "outlier_audit", "path": OUTLIER_AUDIT_OUTPUT, "rows": len(outlier_audit), "exists": OUTLIER_AUDIT_OUTPUT.exists()},
 		{"artifact": "final_qa", "path": FINAL_QA_OUTPUT, "rows": len(final_qa), "exists": FINAL_QA_OUTPUT.exists()},
 		{"artifact": "handoff_notes", "path": HANDOFF_NOTES_OUTPUT, "rows": len(handoff_notes), "exists": HANDOFF_NOTES_OUTPUT.exists()},
@@ -596,6 +658,7 @@ output_checklist = pd.DataFrame(
 		{"artifact": "province_ranking_figure", "path": PROVINCE_RANKING_FIG, "exists": PROVINCE_RANKING_FIG.exists()},
 		{"artifact": "region_structure_figure", "path": REGION_STRUCTURE_FIG, "exists": REGION_STRUCTURE_FIG.exists()},
 		{"artifact": "correlation_figure", "path": CORRELATION_FIG, "exists": CORRELATION_FIG.exists()},
+		{"artifact": "structure_correlation_figure", "path": STRUCTURE_CORRELATION_FIG, "exists": STRUCTURE_CORRELATION_FIG.exists()},
 	]
 )
 output_checklist

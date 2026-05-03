@@ -629,6 +629,9 @@ def test_manual_srdi_did_ready_policy_intensity_panel_descriptive_qa_v2_outputs_
 	)
 	region_summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_region_summary_v2.csv")
 	correlations = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_correlations_v2.csv")
+	structure_correlations = pd.read_csv(
+		ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_structure_correlations_v2.csv"
+	)
 	outlier_audit = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_outlier_audit_v2.csv")
 	final_qa = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_final_qa_v2.csv").set_index("check")
 	handoff_notes = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_handoff_notes_v2.csv")
@@ -661,6 +664,13 @@ def test_manual_srdi_did_ready_policy_intensity_panel_descriptive_qa_v2_outputs_
 
 	assert len(correlations) == 121
 	assert {"left_variable", "right_variable", "pearson_corr"}.issubset(correlations.columns)
+	assert len(structure_correlations) == 121
+	assert {"left_variable", "right_variable", "pearson_corr"}.issubset(structure_correlations.columns)
+	structure_off_diagonal = structure_correlations.loc[
+		structure_correlations["left_variable"].ne(structure_correlations["right_variable"])
+	]
+	assert structure_off_diagonal["pearson_corr"].min() < 0
+	assert structure_off_diagonal["pearson_corr"].max() < 1
 	assert len(outlier_audit) == 186
 	assert {"max_abs_robust_z", "outlier_candidate"}.issubset(outlier_audit.columns)
 
@@ -682,5 +692,6 @@ def test_manual_srdi_did_ready_policy_intensity_panel_descriptive_qa_v2_outputs_
 		"manual_srdi_did_policy_intensity_panel_fig_province_ranking_v2.png",
 		"manual_srdi_did_policy_intensity_panel_fig_region_structure_v2.png",
 		"manual_srdi_did_policy_intensity_panel_fig_correlations_v2.png",
+		"manual_srdi_did_policy_intensity_panel_fig_structure_correlations_v2.png",
 	]:
 		assert (ROOT / "outputs" / figure_name).exists()
