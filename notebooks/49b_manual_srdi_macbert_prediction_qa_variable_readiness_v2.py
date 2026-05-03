@@ -293,6 +293,7 @@ ax.set_xticks(YEARS)
 ax.set_ylim(0, 1)
 ax.legend(frameon=False, ncols=2)
 save_figure(fig, PROBABILITY_BY_YEAR_FIG)
+fig
 
 fig, ax = plt.subplots(figsize=(7.8, 5.0))
 plot_data = probability_by_province.sort_values("other_label_share", ascending=True).tail(12)
@@ -301,6 +302,7 @@ ax.set_xlabel("Other-label share")
 ax.set_ylabel("")
 ax.set_xlim(0, max(0.12, plot_data["other_label_share"].max() * 1.15))
 save_figure(fig, OTHER_SHARE_BY_PROVINCE_FIG)
+fig
 
 # %% [markdown]
 # ## 4. Province-Year Tool Structure and Dictionary Alignment
@@ -360,6 +362,7 @@ ax.set_ylabel("Summed MacBERT probability")
 ax.set_xticks(YEARS)
 ax.legend(frameon=False, ncols=3)
 save_figure(fig, TOOL_INTENSITY_BY_YEAR_FIG)
+fig
 
 # %%
 comparison = macbert_intensity.merge(
@@ -410,6 +413,7 @@ for ax, category in zip(axes, TOOL_LABELS, strict=True):
 	ax.set_xlabel("Dictionary count")
 	ax.set_ylabel("MacBERT probability sum")
 save_figure(fig, DICTIONARY_ALIGNMENT_FIG)
+fig
 
 # %% [markdown]
 # ## 5. Province-Year Outliers and Boundary Samples

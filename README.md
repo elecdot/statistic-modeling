@@ -121,8 +121,17 @@ does not run enterprise-panel merges or DID regressions.
   diagnostics in
   `notebooks/49b_manual_srdi_macbert_prediction_qa_variable_readiness_v2.py`.
   Current decision is `ready_for_variable_selection_v2`.
-- [ ] Build the v2 policy-text variable-selection notebook and final
-  policy-side DID-ready panel for 2019-2024.
+- [x] Build the v2 policy-text variable-selection notebook in
+  `notebooks/50b_manual_srdi_policy_intensity_variable_selection_v2.py`:
+  `data/processed/province_year_srdi_policy_text_variables_v2.csv`. Main
+  variables remain continuous MacBERT probability sums; filtered sums,
+  hard-label counts, high-confidence counts, dictionary variables, and audit
+  fields are retained for the final panel step.
+- [x] Build the final v2 policy-side DID-ready panel in
+  `notebooks/52b_did_ready_policy_intensity_panel_v2.py`:
+  `data/processed/manual_srdi_did_policy_intensity_panel_v2.csv`. Current
+  policy-side status is `ready_for_enterprise_panel_merge`, pending external
+  confirmation that enterprise-panel province labels match `did_province_key`.
 
 ## Documentations
 

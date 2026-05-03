@@ -23,3 +23,13 @@ or package code.
   completed 2019-2024 v2 MacBERT predictions against structural QA, prediction
   distributions, dictionary alignment, boundary samples, and variable-readiness
   decisions. It stops before final policy-side panel construction.
+- `50b_manual_srdi_policy_intensity_variable_selection_v2.py`: selects the
+  2019-2024 v2 policy-text variables from MacBERT probability sums, filtered
+  sums, hard-label counts, high-confidence counts, dictionary robustness
+  variables, and audit fields. It writes the variable table used by the later
+  final policy-side panel step, but does not add DID merge keys or z-scores.
+- `52b_did_ready_policy_intensity_panel_v2.py`: builds the final 2019-2024 v2
+  policy-side DID-ready panel with `did_province_key`, `did_year`,
+  `policy_panel_id`, selected main/robustness/audit variables, z-score
+  convenience variables, province crosswalk, variable map, QA report, and
+  handoff decision. It does not load enterprise data or run DID regressions.

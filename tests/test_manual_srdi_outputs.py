@@ -426,6 +426,66 @@ def test_manual_srdi_policy_intensity_variable_selection_outputs_are_consistent(
 	assert "ready for panel merge" in decision.loc["did_handoff_status", "decision"]
 
 
+def test_manual_srdi_policy_intensity_variable_selection_v2_outputs_are_consistent() -> None:
+	policy_variables = pd.read_csv(ROOT / "data" / "processed" / "province_year_srdi_policy_text_variables_v2.csv")
+	variable_selection = pd.read_csv(ROOT / "outputs" / "manual_srdi_policy_intensity_variable_selection_v2.csv")
+	correlations = pd.read_csv(ROOT / "outputs" / "manual_srdi_policy_intensity_variable_correlations_v2.csv")
+	variable_summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_policy_intensity_variable_summary_v2.csv")
+	decision = pd.read_csv(ROOT / "outputs" / "manual_srdi_policy_intensity_variable_decision_v2.csv").set_index(
+		"decision_area"
+	)
+
+	main_variables = {
+		"srdi_supply_intensity",
+		"srdi_demand_intensity",
+		"srdi_environment_intensity",
+	}
+	required_columns = {
+		"province",
+		"publish_year",
+		"srdi_policy_count",
+		"srdi_policy_count_log",
+		"srdi_total_tool_intensity",
+		"srdi_total_tool_intensity_filtered",
+		"srdi_valid_tool_policy_share",
+		"srdi_other_exclusion_count",
+		"srdi_supply_high_confidence_count",
+		"srdi_demand_high_confidence_count",
+		"srdi_environment_high_confidence_count",
+		"dict_supply_policy_count",
+		"dict_demand_policy_count",
+		"dict_environment_policy_count",
+		"audit_fallback_full_text_for_model_count",
+		"audit_jurisdiction_review_candidate_count",
+	} | main_variables
+
+	assert len(policy_variables) == 186
+	assert policy_variables["province"].nunique() == 31
+	assert set(policy_variables["publish_year"]) == {2019, 2020, 2021, 2022, 2023, 2024}
+	assert "central" not in set(policy_variables["province"])
+	assert policy_variables[["province", "publish_year"]].duplicated().sum() == 0
+	assert required_columns.issubset(policy_variables.columns)
+	assert (policy_variables[list(main_variables)] >= 0).all().all()
+	assert int(policy_variables["audit_fallback_full_text_for_model_count"].sum()) == 1
+	assert int(policy_variables["audit_jurisdiction_review_candidate_count"].sum()) == 0
+
+	selected_main = set(variable_selection.loc[variable_selection["recommended_use"].eq("main"), "variable"])
+	assert selected_main == main_variables
+	assert len(correlations) == 105
+	assert {"pearson_corr", "spearman_corr", "abs_pearson_corr"}.issubset(correlations.columns)
+	assert {
+		"srdi_supply_intensity",
+		"srdi_demand_intensity",
+		"srdi_environment_intensity",
+		"audit_fallback_full_text_for_model_count",
+	}.issubset(set(variable_summary["variable"]))
+	assert variable_summary["missing_count"].eq(0).all()
+	assert decision.loc["main_policy_tool_variables", "variables"] == (
+		"srdi_supply_intensity;srdi_demand_intensity;srdi_environment_intensity"
+	)
+	assert "ready for final policy-side panel construction" in decision.loc["next_step", "decision"]
+
+
 def test_manual_srdi_did_policy_intensity_handoff_outputs_are_consistent() -> None:
 	handoff_qa = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_handoff_qa_v1.csv")
 	variable_summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_variable_summary_v1.csv")
@@ -488,3 +548,73 @@ def test_manual_srdi_did_ready_policy_intensity_panel_is_consistent() -> None:
 	assert quality.loc["firm_panel_confirmation_required", "status"] == "needs_external_data"
 	assert merge_keys.issubset(set(variable_map["variable"]))
 	assert main_variables.issubset(set(variable_map.loc[variable_map["did_use"].eq("main_moderator"), "variable"]))
+
+
+def test_manual_srdi_did_ready_policy_intensity_panel_v2_is_consistent() -> None:
+	panel = pd.read_csv(ROOT / "data" / "processed" / "manual_srdi_did_policy_intensity_panel_v2.csv")
+	quality = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_quality_report_v2.csv").set_index(
+		"metric"
+	)
+	variable_map = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_variable_map_v2.csv")
+	crosswalk = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_province_crosswalk_template_v2.csv")
+	decision = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_decision_v2.csv").set_index(
+		"decision_area"
+	)
+
+	main_variables = {
+		"srdi_supply_intensity",
+		"srdi_demand_intensity",
+		"srdi_environment_intensity",
+	}
+	merge_keys = {"did_province_key", "did_year"}
+	required_columns = {
+		"policy_panel_id",
+		"did_province_key",
+		"did_year",
+		"policy_province",
+		"policy_data_version",
+		"srdi_policy_count",
+		"srdi_policy_count_log",
+		"srdi_total_tool_intensity",
+		"srdi_supply_intensity_filtered",
+		"srdi_demand_intensity_filtered",
+		"srdi_environment_intensity_filtered",
+		"srdi_supply_high_confidence_count",
+		"srdi_demand_high_confidence_count",
+		"srdi_environment_high_confidence_count",
+		"dict_supply_policy_share",
+		"dict_demand_policy_share",
+		"dict_environment_policy_share",
+		"audit_fallback_full_text_for_model_count",
+		"audit_jurisdiction_review_candidate_count",
+	} | main_variables
+
+	assert len(panel) == 186
+	assert panel["did_province_key"].nunique() == 31
+	assert set(panel["did_year"]) == {2019, 2020, 2021, 2022, 2023, 2024}
+	assert panel["policy_panel_id"].is_unique
+	assert panel[list(merge_keys)].duplicated().sum() == 0
+	assert required_columns.issubset(panel.columns)
+	assert panel[list(main_variables)].notna().all().all()
+	assert (panel[list(main_variables)] >= 0).all().all()
+	assert {f"{variable}_z" for variable in main_variables}.issubset(panel.columns)
+	assert "srdi_total_tool_intensity_z" in panel.columns
+	assert panel["needs_firm_panel_confirmation"].all()
+	assert panel["policy_data_version"].eq("manual_srdi_did_policy_intensity_panel_v2").all()
+	assert "central" not in set(panel["did_province_key"])
+	assert "新疆" in set(panel["did_province_key"])
+	assert int(panel["audit_fallback_full_text_for_model_count"].sum()) == 1
+	assert int(panel["audit_jurisdiction_review_candidate_count"].sum()) == 0
+
+	assert len(crosswalk) == 31
+	assert crosswalk["present_in_policy_variables"].all()
+	assert crosswalk["did_merge_key_recommended"].is_unique
+
+	assert quality.loc["panel_rows", "status"] == "pass"
+	assert quality.loc["year_set", "value"] == "2019;2020;2021;2022;2023;2024"
+	assert quality.loc["fallback_full_text_rows", "value"] == "1"
+	assert quality.loc["jurisdiction_review_candidate_rows", "value"] == "0"
+	assert quality.loc["firm_panel_confirmation_required", "status"] == "needs_external_data"
+	assert merge_keys.issubset(set(variable_map["variable"]))
+	assert main_variables.issubset(set(variable_map.loc[variable_map["did_use"].eq("main_moderator"), "variable"]))
+	assert decision.loc["policy_side_panel_status", "decision"] == "ready_for_enterprise_panel_merge"

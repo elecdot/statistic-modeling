@@ -80,3 +80,11 @@ manual-srdi-macbert-predict-full-v2:
 # Build 2019-2024 v2 MacBERT prediction QA and variable-readiness artifacts.
 manual-srdi-macbert-qa-variable-readiness-v2:
     UV_CACHE_DIR=/tmp/uv-cache uv run python notebooks/49b_manual_srdi_macbert_prediction_qa_variable_readiness_v2.py
+
+# Select 2019-2024 v2 policy-text variables for the final policy-side panel step.
+manual-srdi-policy-text-variable-selection-v2:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python notebooks/50b_manual_srdi_policy_intensity_variable_selection_v2.py
+
+# Build the final 2019-2024 v2 policy-side DID-ready panel.
+manual-srdi-did-ready-policy-panel-v2:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python notebooks/52b_did_ready_policy_intensity_panel_v2.py
