@@ -299,7 +299,7 @@ def test_manual_srdi_fulltext_v2_real_corpus_and_quality_reports_are_consistent(
 		sheet_name="tableData",
 		dtype=str,
 	)
-	overrides = load_jurisdiction_overrides(ROOT / "configs" / "manual_srdi_jurisdiction_overrides_v1.csv")
+	overrides = load_jurisdiction_overrides(ROOT / "configs" / "manual_srdi_jurisdiction_overrides_v2.csv")
 	processed = build_manual_fulltext_policy_records_v2(current_raw, supplement_raw, overrides)
 	intensity = build_province_year_intensity_v2(processed)
 	candidates = build_v2_jurisdiction_review_candidates(processed)
@@ -333,14 +333,28 @@ def test_manual_srdi_fulltext_v2_real_corpus_and_quality_reports_are_consistent(
 	assert intensity["province"].nunique() == 31
 	assert set(intensity["publish_year"]) == {2019, 2020, 2021, 2022, 2023, 2024}
 	assert "central" not in set(intensity["province"])
-	assert len(candidates) > 0
+	assert len(candidates) == 0
+	assert processed.loc[processed["policy_id"].eq("manual_srdi_61160dd4dfe2e714"), "province"].item() == "central"
+	assert processed.loc[processed["policy_id"].eq("manual_srdi_aedccb00c17245cd"), "province"].item() == "central"
+	assert processed.loc[processed["policy_id"].eq("manual_srdi_e7a4f2a765ba3e53"), "province"].item() == "central"
+	assert processed.loc[processed["policy_id"].eq("manual_srdi_11d35ba582c37571"), "province"].item() == "浙江省"
+	assert processed.loc[processed["policy_id"].eq("manual_srdi_9132a3fb59f17322"), "province"].item() == "湖南省"
+	assert processed.loc[processed["policy_id"].eq("manual_srdi_88028c0ddf2ebaba"), "province"].item() == "安徽省"
+	assert processed.loc[processed["policy_id"].eq("manual_srdi_88028c0ddf2ebaba"), "province_correction_status"].item() == "reviewed_original"
 	assert quality.loc["supplement_2019_source_records", "value"] == 190
 	assert quality.loc["processed_records", "value"] == 3989
 	assert quality.loc["excluded_2025_records", "value"] == 676
 	assert quality.loc["excluded_2026_records", "value"] == 167
 	assert quality.loc["missing_full_text", "value"] == 1
 	assert quality.loc["intensity_records", "value"] == 186
+	assert quality.loc["central_records", "value"] == 192
+	assert quality.loc["local_records", "value"] == 3797
+	assert quality.loc["province_corrected_records", "value"] == 20
+	assert quality.loc["province_reviewed_original_records", "value"] == 1
 	assert quality.loc["jurisdiction_review_candidate_records", "value"] == len(candidates)
+	assert supplement_quality.loc["central_records", "value"] == 23
+	assert supplement_quality.loc["local_records", "value"] == 167
+	assert supplement_quality.loc["jurisdiction_review_candidate_records", "value"] == 0
 	assert supplement_quality.loc["missing_full_text_policy_ids", "value"] == quality.loc["missing_full_text_policy_ids", "value"]
 
 

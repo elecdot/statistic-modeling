@@ -45,6 +45,14 @@ manual-srdi-fulltext-processed-v1:
 manual-srdi-fulltext-processed-v2:
     UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_fulltext_processed_corpus_v2.py
 
+# Build 2019-2024 v2 full-text dictionary features from the frozen v1 codebook.
+manual-srdi-fulltext-text-mining-v2:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python notebooks/42b_manual_srdi_fulltext_text_mining_v2.py
+
+# Build 2019-2024 v2 full-text descriptive and keyword-quality artifacts.
+manual-srdi-fulltext-desc-keyword-quality-v2:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python notebooks/44b_manual_srdi_fulltext_descriptive_keyword_quality_v2.py
+
 # Validate DeepSeek round-1 labeling prompts and outputs without API calls.
 manual-srdi-deepseek-round1-dry-run:
     UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_deepseek_round1_label.py --dry-run --limit 3 --labels-output /tmp/manual_policy_srdi_deepseek_labels_round1_dry_run.csv --quality-output /tmp/manual_policy_srdi_deepseek_round1_dry_run_quality_report.csv --raw-output-dir /tmp/manual_srdi_deepseek_round1_dry_run
@@ -64,3 +72,11 @@ manual-srdi-macbert-train:
 # Predict policy-tool probabilities for the full manual SRDI full-text corpus.
 manual-srdi-macbert-predict-full:
     UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_macbert_predict_full_corpus.py
+
+# Predict policy-tool probabilities for the 2019-2024 v2 full-text corpus.
+manual-srdi-macbert-predict-full-v2:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/manual_srdi_macbert_predict_full_corpus_v2.py
+
+# Build 2019-2024 v2 MacBERT prediction QA and variable-readiness artifacts.
+manual-srdi-macbert-qa-variable-readiness-v2:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python notebooks/49b_manual_srdi_macbert_prediction_qa_variable_readiness_v2.py

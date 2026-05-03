@@ -64,6 +64,59 @@ def test_full_prediction_hard_rule_and_panel_aggregation() -> None:
 	assert intensity.loc[intensity["province"].eq("上海"), "macbert_policy_records"].sum() == 0
 
 
+def test_v2_empty_full_text_fallback_builds_model_text() -> None:
+	row = pd.Series(
+		{
+			"policy_id": "fallback_1",
+			"province": "安徽省",
+			"source_label_original": "安徽省",
+			"jurisdiction_type": "local",
+			"publish_date": "2019-02-22",
+			"publish_year": 2019,
+			"title": "关于做好工业和信息化部专精特新小巨人企业补充推荐工作的通知",
+			"agency": "",
+			"source_url": "https://example.com/fallback",
+			"full_text": "",
+			"full_text_len": 0,
+		}
+	)
+	frame = pd.DataFrame([row])
+
+	prediction.validate_input(frame, allow_empty_full_text_fallback=True)
+	model_text = prediction.make_model_text(row, context_terms=["专精特新", "小巨人"])
+
+	assert "标题：" in model_text
+	assert "降级输入说明" in model_text
+	assert "专精特新" in model_text
+
+
+def test_empty_full_text_still_fails_without_fallback_flag() -> None:
+	frame = pd.DataFrame(
+		[
+			{
+				"policy_id": "fallback_1",
+				"province": "安徽省",
+				"source_label_original": "安徽省",
+				"jurisdiction_type": "local",
+				"publish_date": "2019-02-22",
+				"publish_year": 2019,
+				"title": "专精特新政策",
+				"agency": "",
+				"source_url": "https://example.com/fallback",
+				"full_text": "",
+				"full_text_len": 0,
+			}
+		]
+	)
+
+	try:
+		prediction.validate_input(frame)
+	except ValueError as error:
+		assert "empty full_text" in str(error)
+	else:
+		raise AssertionError("empty full_text should fail when fallback is disabled")
+
+
 def test_manual_srdi_macbert_full_prediction_outputs_are_consistent() -> None:
 	classified_path = ROOT / "data" / "processed" / "manual_policy_srdi_policy_classified_fulltext_v1.csv"
 	intensity_path = ROOT / "data" / "processed" / "province_year_srdi_macbert_tool_intensity_v1.csv"
@@ -88,3 +141,33 @@ def test_manual_srdi_macbert_full_prediction_outputs_are_consistent() -> None:
 	assert {"supply_label", "demand_label", "environment_label", "other_label", "valid_tool_policy"}.issubset(classified.columns)
 	assert int(quality.loc["prediction_rows", "value"]) == 4475
 	assert int(quality.loc["province_year_rows", "value"]) == 186
+
+
+def test_manual_srdi_macbert_full_prediction_v2_outputs_are_consistent() -> None:
+	classified_path = ROOT / "data" / "processed" / "manual_policy_srdi_policy_classified_fulltext_v2.csv"
+	intensity_path = ROOT / "data" / "processed" / "province_year_srdi_macbert_tool_intensity_v2.csv"
+	if not classified_path.exists() or not intensity_path.exists():
+		return
+
+	classified = pd.read_csv(classified_path)
+	intensity = pd.read_csv(intensity_path)
+	quality = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_full_corpus_prediction_quality_report_v2.csv").set_index("metric")
+	probability_summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_full_corpus_probability_summary_v2.csv")
+	panel_coverage = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_full_corpus_panel_coverage_v2.csv")
+
+	assert len(classified) == 3989
+	assert classified["policy_id"].is_unique
+	assert len(intensity) == 186
+	assert intensity["province"].nunique() == 31
+	assert set(intensity["publish_year"]) == {2019, 2020, 2021, 2022, 2023, 2024}
+	assert len(panel_coverage) == 186
+	assert set(probability_summary["label"]) == {"supply", "demand", "environment", "other"}
+	assert classified["model_text_source"].value_counts().to_dict()["title_metadata_fallback"] == 1
+	assert classified["full_text_missing"].sum() == 1
+	assert classified["needs_jurisdiction_review"].sum() == 0
+	for column in ["p_supply", "p_demand", "p_environment", "p_other"]:
+		assert classified[column].between(0, 1).all()
+	assert {"supply_label", "demand_label", "environment_label", "other_label", "valid_tool_policy"}.issubset(classified.columns)
+	assert int(quality.loc["prediction_rows", "value"]) == 3989
+	assert int(quality.loc["province_year_rows", "value"]) == 186
+	assert int(quality.loc["model_text_fallback_rows", "value"]) == 1

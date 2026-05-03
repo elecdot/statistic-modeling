@@ -56,6 +56,20 @@ CORE_COLUMNS = [
 	"full_text_len",
 ]
 
+OPTIONAL_AUDIT_COLUMNS = [
+	"province_before_correction",
+	"province_correction_status",
+	"province_correction_reason",
+	"province_correction_evidence",
+	"region_name",
+	"keyword_count_source",
+	"source_workbook",
+	"source_schema_version",
+	"full_text_missing",
+	"full_text_fallback_for_model",
+	"needs_jurisdiction_review",
+]
+
 
 def parse_args() -> argparse.Namespace:
 	parser = argparse.ArgumentParser(description=__doc__)
@@ -76,6 +90,11 @@ def parse_args() -> argparse.Namespace:
 	parser.add_argument("--limit", type=int, default=None, help="Optional cap for local smoke runs.")
 	parser.add_argument("--show-download-progress", action="store_true", help="Show Hugging Face progress and advisory logs for debugging.")
 	parser.add_argument("--dry-run", action="store_true", help="Validate inputs and write QA only; do not load model or predict.")
+	parser.add_argument(
+		"--allow-empty-full-text-fallback",
+		action="store_true",
+		help="Allow empty full_text rows and build model text from title, agency, province, and year metadata.",
+	)
 	return parser.parse_args()
 
 
@@ -130,14 +149,21 @@ def make_model_text(row: pd.Series, context_terms: list[str]) -> str:
 		f"年份：{int(row['publish_year'])}",
 		"",
 		"正文前部：",
-		front,
+		front if front else normalize_text(row["title"]),
 	]
+	if not text:
+		parts.extend(
+			[
+				"",
+				"降级输入说明：原始全文为空，当前模型输入仅使用标题、发文机关、省份和年份元数据。",
+			]
+		)
 	if keyword_context:
 		parts.extend(["", "关键词附近内容：", keyword_context])
 	return "\n".join(parts).strip()
 
 
-def validate_input(frame: pd.DataFrame) -> None:
+def validate_input(frame: pd.DataFrame, *, allow_empty_full_text_fallback: bool = False) -> None:
 	missing_columns = [column for column in [*CORE_COLUMNS, "full_text"] if column not in frame.columns]
 	if missing_columns:
 		raise ValueError(f"Input corpus is missing columns: {missing_columns}")
@@ -146,7 +172,10 @@ def validate_input(frame: pd.DataFrame) -> None:
 		raise ValueError(f"Input corpus has duplicate policy_id values: {duplicates}")
 	if frame["full_text"].fillna("").astype(str).str.strip().eq("").any():
 		missing = frame.loc[frame["full_text"].fillna("").astype(str).str.strip().eq(""), "policy_id"].head(10).tolist()
-		raise ValueError(f"Input corpus has empty full_text rows: {missing}")
+		if not allow_empty_full_text_fallback:
+			raise ValueError(f"Input corpus has empty full_text rows: {missing}")
+		if frame.loc[frame["full_text"].fillna("").astype(str).str.strip().eq(""), "title"].fillna("").astype(str).str.strip().eq("").any():
+			raise ValueError(f"Input corpus has empty full_text rows without title fallback text: {missing}")
 
 
 def predict_probabilities(
@@ -205,7 +234,8 @@ def predict_probabilities(
 
 
 def add_prediction_columns(frame: pd.DataFrame, probabilities: np.ndarray) -> pd.DataFrame:
-	output = frame[CORE_COLUMNS].copy()
+	output_columns = [*CORE_COLUMNS, *[column for column in OPTIONAL_AUDIT_COLUMNS if column in frame.columns]]
+	output = frame[output_columns].copy()
 	for index, label in enumerate(LABEL_NAMES):
 		output[f"p_{label}"] = probabilities[:, index]
 	binary = hard_other_rule(probabilities)
@@ -216,6 +246,8 @@ def add_prediction_columns(frame: pd.DataFrame, probabilities: np.ndarray) -> pd
 	output["any_tool_label"] = output[["supply_label", "demand_label", "environment_label"]].max(axis=1)
 	output["valid_tool_policy"] = ((output["other_label"].eq(0)) & (output["any_tool_label"].eq(1))).astype(int)
 	output["model_text_hash"] = frame["model_text"].map(stable_hash)
+	if "model_text_source" in frame.columns:
+		output["model_text_source"] = frame["model_text_source"]
 	return output
 
 
@@ -335,6 +367,21 @@ def build_quality_report(
 		("valid_tool_policy_rows", int(classified["valid_tool_policy"].sum()), "Rows retained as valid tool policies by the hard rule."),
 		("missing_title", int(classified["title"].isna().sum()), "Missing title count."),
 		("missing_agency", int(classified["agency"].isna().sum()), "Missing agency count."),
+		(
+			"empty_full_text_rows",
+			int(classified["full_text_missing"].sum()) if "full_text_missing" in classified.columns else 0,
+			"Rows whose source full_text was empty.",
+		),
+		(
+			"model_text_fallback_rows",
+			int(classified["model_text_source"].eq("title_metadata_fallback").sum()) if "model_text_source" in classified.columns else 0,
+			"Rows whose model input used metadata/title fallback instead of full text.",
+		),
+		(
+			"jurisdiction_review_candidate_rows",
+			int(classified["needs_jurisdiction_review"].sum()) if "needs_jurisdiction_review" in classified.columns else 0,
+			"Rows still marked for jurisdiction review.",
+		),
 		("device", device, "Resolved prediction device."),
 		("dry_run", dry_run, "True means no model was loaded or predictions generated."),
 		("elapsed_seconds", round(elapsed_seconds, 2), "Prediction script elapsed seconds."),
@@ -357,21 +404,19 @@ def run_prediction(args: argparse.Namespace) -> None:
 		corpus = corpus.head(args.limit).copy()
 	base_panel = pd.read_csv(args.base_panel)
 	rule_keywords = pd.read_csv(args.rule_keywords)
-	validate_input(corpus)
+	validate_input(corpus, allow_empty_full_text_fallback=args.allow_empty_full_text_fallback)
 	context_terms = get_context_terms(rule_keywords)
 	corpus = corpus.copy()
+	empty_full_text = corpus["full_text"].fillna("").astype(str).str.strip().eq("")
+	corpus["model_text_source"] = np.where(empty_full_text, "title_metadata_fallback", "full_text")
 	corpus["model_text"] = corpus.apply(make_model_text, axis=1, context_terms=context_terms)
+	if corpus["model_text"].fillna("").astype(str).str.strip().eq("").any():
+		missing = corpus.loc[corpus["model_text"].fillna("").astype(str).str.strip().eq(""), "policy_id"].head(10).tolist()
+		raise ValueError(f"Prepared empty model_text rows: {missing}")
 	logger.info("Prepared model texts rows=%s context_terms=%s", len(corpus), len(context_terms))
 
 	if args.dry_run:
-		empty_classified = corpus[CORE_COLUMNS].copy()
-		for label in LABEL_NAMES:
-			empty_classified[f"p_{label}"] = 0.0
-			empty_classified[f"{label}_label"] = 0
-		empty_classified["max_tool_prob"] = 0.0
-		empty_classified["tool_probability_sum"] = 0.0
-		empty_classified["any_tool_label"] = 0
-		empty_classified["valid_tool_policy"] = 0
+		empty_classified = add_prediction_columns(corpus, np.zeros((len(corpus), len(LABEL_NAMES)), dtype=np.float32))
 		intensity = build_intensity_table(empty_classified, base_panel)
 		args.quality_output.parent.mkdir(parents=True, exist_ok=True)
 		build_quality_report(

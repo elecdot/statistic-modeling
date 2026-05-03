@@ -54,6 +54,9 @@ corpus by stacking the current full-text workbook's 2020-2024 records with the
 `data/interim/manual_policy_all_keyword_srdi_2019_supplementary.xlsx`. It keeps
 v1 outputs intact, writes a v2 row-level corpus, a balanced province-year
 policy-count table, QA reports, and a 2019 jurisdiction-review candidate table.
+The default jurisdiction correction config is
+`configs/manual_srdi_jurisdiction_overrides_v2.csv`, which preserves the
+reviewed v1 corrections and adds the 2019 supplement review decisions.
 Prefer:
 
 ```bash
@@ -151,3 +154,18 @@ the training workflow. It writes row-level predictions to
 province-year tool intensity to
 `data/processed/province_year_srdi_macbert_tool_intensity_v1.csv`, and prediction
 QA tables under `outputs/manual_srdi_macbert_full_corpus_*_v1.csv`.
+
+`manual_srdi_macbert_predict_full_corpus_v2.py` applies the same trained v1
+checkpoint to the reviewed 2019-2024 v2 full-text corpus:
+
+```bash
+just manual-srdi-macbert-predict-full-v2
+```
+
+The v2 entry point writes row-level predictions to
+`data/processed/manual_policy_srdi_policy_classified_fulltext_v2.csv`,
+province-year tool intensity to
+`data/processed/province_year_srdi_macbert_tool_intensity_v2.csv`, and prediction
+QA tables under `outputs/manual_srdi_macbert_full_corpus_*_v2.csv`. It keeps v1
+outputs intact and uses title/agency/province/year fallback for the single
+retained v2 row with empty full text.

@@ -103,6 +103,27 @@ expansion.
   before final paper freeze, mainly for demand-threshold and `other` boundary
   cases.
 
+**v2 2019-2024 Rebuild**:
+The v2 path corrects the policy-side analysis window from 2020-2025 to
+2019-2024. The current repo scope remains policy-panel construction only; it
+does not run enterprise-panel merges or DID regressions.
+
+- [x] Build the reviewed v2 full-text corpus and policy-count panel:
+  `data/processed/manual_policy_srdi_policy_records_fulltext_v2.csv` and
+  `data/processed/province_year_srdi_policy_intensity_v2.csv`.
+- [x] Build v2 full-text dictionary features and descriptive/keyword-quality
+  diagnostics in `notebooks/42b_manual_srdi_fulltext_text_mining_v2.py` and
+  `notebooks/44b_manual_srdi_fulltext_descriptive_keyword_quality_v2.py`.
+- [x] Run v2 MacBERT full-corpus prediction and province-year aggregation:
+  `data/processed/manual_policy_srdi_policy_classified_fulltext_v2.csv` and
+  `data/processed/province_year_srdi_macbert_tool_intensity_v2.csv`.
+- [x] Build independent v2 MacBERT prediction QA and variable-readiness
+  diagnostics in
+  `notebooks/49b_manual_srdi_macbert_prediction_qa_variable_readiness_v2.py`.
+  Current decision is `ready_for_variable_selection_v2`.
+- [ ] Build the v2 policy-text variable-selection notebook and final
+  policy-side DID-ready panel for 2019-2024.
+
 ## Documentations
 
 - `docs/govcn-xxgk-dev-notes.md` -- gov.cn XXGK development notes, milestone history, current artifact snapshot, and stage decisions.

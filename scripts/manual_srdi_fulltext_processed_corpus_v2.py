@@ -61,8 +61,8 @@ def main() -> None:
 	parser.add_argument(
 		"--jurisdiction-overrides",
 		type=Path,
-		default=Path("configs/manual_srdi_jurisdiction_overrides_v1.csv"),
-		help="Reviewed source-label jurisdiction correction CSV.",
+		default=Path("configs/manual_srdi_jurisdiction_overrides_v2.csv"),
+		help="Reviewed source-label jurisdiction correction CSV for the v2 corpus.",
 	)
 	args = parser.parse_args()
 

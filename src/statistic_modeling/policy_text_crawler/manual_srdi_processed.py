@@ -529,7 +529,8 @@ def add_v2_jurisdiction_review_flags(records: pd.DataFrame) -> pd.DataFrame:
 		row_evidence: list[str] = []
 		is_2019_supplement = row.get("source_schema_version", "") == SUPPLEMENT_2019_SOURCE_SCHEMA_V2
 		is_local = row.get("jurisdiction_type", "") == "local"
-		if is_2019_supplement and is_local:
+		is_unreviewed_original = row.get("province_correction_status", "") == "original"
+		if is_2019_supplement and is_local and is_unreviewed_original:
 			title_prefix_province = infer_title_prefix_province(row.get("title", ""))
 			if title_prefix_province and title_prefix_province != row.get("province", ""):
 				row_reasons.append("title_prefix_suggests_other_jurisdiction")
@@ -820,6 +821,7 @@ def build_manual_fulltext_processed_quality_report_v2(
 	)
 	in_window = normalized["in_analysis_window"]
 	corrected = processed["province_correction_status"].eq("corrected")
+	reviewed_original = processed["province_correction_status"].eq("reviewed_original")
 	missing_full_text_policy_ids = ";".join(processed.loc[processed["full_text_missing"], "policy_id"].tolist())
 	rows = [
 		("analysis_window", "2019-01-01 through 2024-12-31", "Policy-side v2 analysis window."),
@@ -849,6 +851,7 @@ def build_manual_fulltext_processed_quality_report_v2(
 		("keyword_count_workbook_metadata_records", int(processed["keyword_count_source"].eq("workbook_metadata").sum()), "Rows using workbook keyword count metadata."),
 		("keyword_count_derived_from_text_records", int(processed["keyword_count_source"].eq("derived_from_text").sum()), "Rows using derived title/full-text keyword counts."),
 		("province_corrected_records", int(corrected.sum()), "Rows with reviewed source-label jurisdiction corrections applied."),
+		("province_reviewed_original_records", int(reviewed_original.sum()), "Rows reviewed and kept in their original source-label jurisdiction."),
 		("jurisdiction_review_candidate_records", len(jurisdiction_candidates), "2019 supplement rows flagged for jurisdiction review before final paper freeze."),
 		("title_contains_srdi", int(processed["title_contains_srdi"].sum()), "Processed rows whose title contains 专精特新."),
 		("full_text_contains_srdi", int(processed["full_text_contains_srdi"].sum()), "Processed rows whose full text contains 专精特新."),

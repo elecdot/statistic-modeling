@@ -64,6 +64,46 @@ def test_manual_srdi_fulltext_outputs_are_consistent() -> None:
 	assert text_quality.loc["high_coverage_terms_gte_25pct_records", "value"] == 41
 
 
+def test_manual_srdi_fulltext_v2_text_mining_outputs_are_consistent() -> None:
+	processed = pd.read_csv(ROOT / "data" / "processed" / "manual_policy_srdi_policy_records_fulltext_v2.csv")
+	row_features = pd.read_csv(ROOT / "data" / "processed" / "manual_policy_srdi_text_features_fulltext_v2.csv")
+	province_year_features = pd.read_csv(ROOT / "data" / "processed" / "province_year_srdi_text_features_fulltext_v2.csv")
+	text_quality = pd.read_csv(ROOT / "outputs" / "manual_policy_srdi_text_mining_fulltext_v2_quality_report.csv").set_index("metric")
+	dictionary_v1 = pd.read_csv(ROOT / "outputs" / "manual_policy_srdi_tool_dictionary_fulltext_v1.csv")
+	dictionary_v2 = pd.read_csv(ROOT / "outputs" / "manual_policy_srdi_tool_dictionary_fulltext_v2.csv")
+	dictionary_coverage = pd.read_csv(ROOT / "outputs" / "manual_policy_srdi_tool_dictionary_coverage_fulltext_v2.csv")
+	keyword_quality = pd.read_csv(ROOT / "outputs" / "manual_policy_srdi_keyword_quality_check_fulltext_v2.csv")
+	no_hit_records = pd.read_csv(ROOT / "outputs" / "manual_policy_srdi_no_tool_hit_records_fulltext_v2.csv")
+
+	assert len(processed) == 3989
+	assert len(row_features) == 3989
+	assert len(province_year_features) == 186
+	assert processed["policy_id"].is_unique
+	assert row_features["policy_id"].is_unique
+	assert set(row_features["publish_year"]) == {2019, 2020, 2021, 2022, 2023, 2024}
+	assert set(province_year_features["publish_year"]) == {2019, 2020, 2021, 2022, 2023, 2024}
+	assert province_year_features["province"].nunique() == 31
+	assert "central" not in set(province_year_features["province"])
+	assert row_features["source_schema_version"].value_counts().to_dict() == {
+		"current_fulltext_workbook_v1": 3799,
+		"supplement_2019_fulltext_v1": 190,
+	}
+	assert row_features["full_text_missing"].sum() == 1
+	assert row_features["full_text_fallback_for_model"].sum() == 1
+	assert row_features["needs_jurisdiction_review"].sum() == 0
+	assert dictionary_v2.equals(dictionary_v1)
+	assert len(dictionary_coverage) == 85
+	assert (dictionary_coverage["records_hit"] > 0).all()
+	assert len(keyword_quality) == 85
+	assert len(no_hit_records) == 3
+	assert text_quality.loc["row_feature_records", "value"] == 3989
+	assert text_quality.loc["province_year_feature_records", "value"] == 186
+	assert text_quality.loc["policy_records_without_tool_hit", "value"] == 3
+	assert text_quality.loc["full_text_missing_records", "value"] == 1
+	assert text_quality.loc["jurisdiction_review_candidate_records", "value"] == 0
+	assert text_quality.loc["high_coverage_terms_gte_25pct_records", "value"] == 41
+
+
 def test_manual_srdi_text_measure_comparison_outputs_are_consistent() -> None:
 	summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_text_measure_comparison_summary_v1.csv").set_index("metric")
 	row_transitions = pd.read_csv(ROOT / "outputs" / "manual_srdi_text_measure_row_transitions_v1.csv")
@@ -134,6 +174,60 @@ def test_manual_srdi_fulltext_keyword_quality_outputs_are_consistent() -> None:
 		"why_demand_rises",
 		"very_high_coverage_terms",
 		"modeling_implication",
+	}
+
+
+def test_manual_srdi_fulltext_v2_descriptive_keyword_quality_outputs_are_consistent() -> None:
+	year_trend = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_year_trend_v2.csv")
+	province_distribution = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_province_distribution_v2.csv")
+	source_schema = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_source_schema_summary_v2.csv").set_index("source_schema_version")
+	tool_summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_tool_category_summary_v2.csv")
+	tool_shares_by_year = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_tool_shares_by_year_v2.csv")
+	heatmap_matrix = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_policy_intensity_heatmap_matrix_v2.csv", index_col=0)
+	tool_share_by_province = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_tool_share_by_province_v2.csv")
+	central_local = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_central_local_comparison_v2.csv")
+	no_hit_summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_no_hit_summary_v2.csv")
+	high_coverage_terms = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_high_coverage_terms_v2.csv")
+	missing_full_text = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_desc_missing_full_text_records_v2.csv")
+	keyword_summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_keyword_quality_summary_v2.csv").set_index("metric")
+	term_flags = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_keyword_quality_term_flags_v2.csv")
+	category_overlap = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_keyword_quality_category_overlap_v2.csv").set_index("group")
+	category_comparison = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_keyword_quality_category_comparison_v2.csv").set_index("category")
+	interpretation_notes = pd.read_csv(ROOT / "outputs" / "manual_srdi_fulltext_keyword_quality_interpretation_notes_v2.csv")
+
+	assert year_trend["publish_year"].tolist() == [2019, 2020, 2021, 2022, 2023, 2024]
+	assert year_trend["total_policy_count"].sum() == 3989
+	assert len(province_distribution) == 31
+	assert source_schema.loc["supplement_2019_fulltext_v1", "policy_records"] == 190
+	assert source_schema.loc["supplement_2019_fulltext_v1", "full_text_missing_records"] == 1
+	assert source_schema.loc["current_fulltext_workbook_v1", "policy_records"] == 3799
+	assert set(tool_summary["tool_category"]) == {"supply", "demand", "environment", "any_tool"}
+	assert len(tool_shares_by_year) == 6
+	assert heatmap_matrix.shape == (31, 6)
+	assert len(tool_share_by_province) == 31
+	assert sorted(central_local["jurisdiction_type"].tolist()) == ["central", "local"]
+	assert no_hit_summary.loc[no_hit_summary["summary_type"].eq("year"), "no_tool_policy_count"].sum() == 3
+	assert len(high_coverage_terms) == 41
+	assert len(missing_full_text) == 1
+	assert keyword_summary.loc["dictionary_terms", "value"] == 85
+	assert keyword_summary.loc["saturated_terms_gte_80pct", "value"] == 2
+	assert keyword_summary.loc["high_coverage_terms_gte_50pct", "value"] == 15
+	assert keyword_summary.loc["moderate_plus_terms_gte_25pct", "value"] == 41
+	assert keyword_summary.loc["no_tool_records", "value"] == 3
+	assert keyword_summary.loc["missing_full_text_records", "value"] == 1
+	assert len(term_flags) == 85
+	assert term_flags["interpretation_role"].eq("broad_intensity_signal").sum() == 15
+	assert category_overlap.loc["no_tool", "records"] == 3
+	assert category_overlap.loc["all_three_categories", "records"] == 3506
+	assert category_comparison.loc["supply", "record_hit_share"] > 0.99
+	assert category_comparison.loc["environment", "record_hit_share"] > 0.98
+	assert category_comparison.loc["demand", "record_hit_share"] > 0.88
+	assert set(interpretation_notes["topic"]) == {
+		"v2_window_change",
+		"dictionary_stability",
+		"no_hit_and_missing_full_text",
+		"broad_term_saturation",
+		"macbert_readiness",
 	}
 
 
@@ -223,6 +317,71 @@ def test_manual_srdi_macbert_full_corpus_qa_outputs_are_consistent() -> None:
 		"macbert_dictionary_conflict",
 	}.issubset(set(boundary_samples["review_reason"]))
 	assert decision.loc["current_decision", "status"] == "ready_for_did_v1"
+
+
+def test_manual_srdi_macbert_prediction_qa_variable_readiness_v2_outputs_are_consistent() -> None:
+	qa_summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_prediction_qa_summary_v2.csv").set_index("metric")
+	by_year = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_prediction_probability_by_year_v2.csv")
+	by_province = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_prediction_probability_by_province_v2.csv")
+	tool_structure = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_prediction_tool_structure_by_year_v2.csv")
+	dictionary_comparison = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_prediction_dictionary_comparison_v2.csv")
+	boundary_samples = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_prediction_boundary_samples_v2.csv")
+	variable_candidates = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_variable_candidates_v2.csv")
+	readiness = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_variable_readiness_decision_v2.csv").set_index("check")
+	interpretation_notes = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_prediction_interpretation_notes_v2.csv")
+
+	assert int(qa_summary.loc["classified_rows", "value"]) == 3989
+	assert int(qa_summary.loc["province_year_rows", "value"]) == 186
+	assert qa_summary.loc["year_set", "value"] == "2019;2020;2021;2022;2023;2024"
+	assert qa_summary.loc["panel_is_balanced_31x6", "value"] == "True"
+	assert int(qa_summary.loc["model_text_fallback_rows", "value"]) == 1
+	assert int(qa_summary.loc["jurisdiction_review_candidate_rows", "value"]) == 0
+
+	assert set(by_year["publish_year"]) == {2019, 2020, 2021, 2022, 2023, 2024}
+	assert len(by_province) == 31
+	assert set(tool_structure["publish_year"]) == {2019, 2020, 2021, 2022, 2023, 2024}
+	assert set(dictionary_comparison["category"]) == {"supply", "demand", "environment"}
+	assert set(dictionary_comparison["comparison_type"]).issuperset(
+		{"raw_sum_vs_dictionary_count", "hard_label_count_vs_dictionary_count"}
+	)
+	assert len(boundary_samples) >= 120
+	assert {
+		"highest_p_other",
+		"low_confidence_tool_boundary",
+		"all_three_tools_high",
+		"demand_near_threshold",
+		"macbert_dictionary_conflict",
+		"title_metadata_fallback",
+	}.issubset(set(boundary_samples["review_reason"]))
+
+	main_candidates = {
+		"srdi_supply_intensity",
+		"srdi_demand_intensity",
+		"srdi_environment_intensity",
+	}
+	assert main_candidates == set(
+		variable_candidates.loc[variable_candidates["recommended_next_step"].eq("main_candidate"), "variable"]
+	)
+	assert readiness.loc["current_decision", "status"] == "ready_for_variable_selection_v2"
+	assert readiness.loc[
+		["artifact_completeness", "panel_balance", "probability_validity", "fallback_and_jurisdiction_audit"],
+		"status",
+	].eq("pass").all()
+	assert set(interpretation_notes["topic"]) == {
+		"v2_window",
+		"model_reuse",
+		"fallback_audit",
+		"main_variable_candidates",
+		"robustness_variables",
+		"scope_boundary",
+	}
+	for figure_name in [
+		"manual_srdi_macbert_fig_probability_by_year_v2.png",
+		"manual_srdi_macbert_fig_tool_intensity_by_year_v2.png",
+		"manual_srdi_macbert_fig_dictionary_alignment_v2.png",
+		"manual_srdi_macbert_fig_other_share_by_province_v2.png",
+	]:
+		assert (ROOT / "outputs" / figure_name).exists()
 
 
 def test_manual_srdi_policy_intensity_variable_selection_outputs_are_consistent() -> None:
