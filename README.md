@@ -132,6 +132,11 @@ does not run enterprise-panel merges or DID regressions.
   `data/processed/manual_srdi_did_policy_intensity_panel_v2.csv`. Current
   policy-side status is `ready_for_enterprise_panel_merge`, pending external
   confirmation that enterprise-panel province labels match `did_province_key`.
+- [x] Build final v2 policy-side descriptive and QA artifacts in
+  `notebooks/53b_did_ready_policy_intensity_panel_descriptive_qa_v2.py`,
+  including summary statistics, annual trends, province rankings, region
+  grouping readiness, correlations, outlier audit, figures, and handoff notes.
+  Region grouping is a readiness artifact, not a heterogeneity-effect result.
 
 ## Documentations
 

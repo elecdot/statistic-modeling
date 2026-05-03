@@ -88,3 +88,7 @@ manual-srdi-policy-text-variable-selection-v2:
 # Build the final 2019-2024 v2 policy-side DID-ready panel.
 manual-srdi-did-ready-policy-panel-v2:
     UV_CACHE_DIR=/tmp/uv-cache uv run python notebooks/52b_did_ready_policy_intensity_panel_v2.py
+
+# Build final descriptive QA artifacts for the 2019-2024 v2 policy-side panel.
+manual-srdi-did-ready-policy-panel-desc-qa-v2:
+    UV_CACHE_DIR=/tmp/uv-cache uv run python notebooks/53b_did_ready_policy_intensity_panel_descriptive_qa_v2.py

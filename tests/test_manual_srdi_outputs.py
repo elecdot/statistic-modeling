@@ -618,3 +618,69 @@ def test_manual_srdi_did_ready_policy_intensity_panel_v2_is_consistent() -> None
 	assert merge_keys.issubset(set(variable_map["variable"]))
 	assert main_variables.issubset(set(variable_map.loc[variable_map["did_use"].eq("main_moderator"), "variable"]))
 	assert decision.loc["policy_side_panel_status", "decision"] == "ready_for_enterprise_panel_merge"
+
+
+def test_manual_srdi_did_ready_policy_intensity_panel_descriptive_qa_v2_outputs_are_consistent() -> None:
+	desc_stats = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_desc_stats_v2.csv")
+	year_trend = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_year_trend_v2.csv")
+	province_ranking = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_province_ranking_v2.csv")
+	region_template = pd.read_csv(
+		ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_region_group_template_v2.csv"
+	)
+	region_summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_region_summary_v2.csv")
+	correlations = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_correlations_v2.csv")
+	outlier_audit = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_outlier_audit_v2.csv")
+	final_qa = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_final_qa_v2.csv").set_index("check")
+	handoff_notes = pd.read_csv(ROOT / "outputs" / "manual_srdi_did_policy_intensity_panel_handoff_notes_v2.csv")
+
+	main_variables = {
+		"srdi_supply_intensity",
+		"srdi_demand_intensity",
+		"srdi_environment_intensity",
+	}
+
+	assert main_variables.issubset(set(desc_stats["variable"]))
+	assert desc_stats["missing_count"].eq(0).all()
+	assert set(year_trend["did_year"]) == {2019, 2020, 2021, 2022, 2023, 2024}
+	assert year_trend["province_units"].eq(31).all()
+	assert int(year_trend["fallback_full_text_rows"].sum()) == 1
+	assert int(year_trend["jurisdiction_review_candidate_rows"].sum()) == 0
+
+	assert len(province_ranking) == 31
+	assert province_ranking["did_province_key"].is_unique
+	assert province_ranking["rank_total_tool_intensity"].min() == 1
+	assert len(region_template) == 31
+	assert set(region_template["region_group"]) == {"east", "central", "west", "northeast"}
+	assert set(region_template["intensity_tertile"]) == {
+		"low_policy_intensity",
+		"middle_policy_intensity",
+		"high_policy_intensity",
+	}
+	assert len(region_summary) == 24
+	assert set(region_summary["did_year"]) == {2019, 2020, 2021, 2022, 2023, 2024}
+
+	assert len(correlations) == 121
+	assert {"left_variable", "right_variable", "pearson_corr"}.issubset(correlations.columns)
+	assert len(outlier_audit) == 186
+	assert {"max_abs_robust_z", "outlier_candidate"}.issubset(outlier_audit.columns)
+
+	assert final_qa.loc["balanced_panel", "status"] == "pass"
+	assert final_qa.loc["correct_window", "status"] == "pass"
+	assert final_qa.loc["fallback_audit_retained", "status"] == "pass"
+	assert final_qa.loc["jurisdiction_audit_clear", "status"] == "pass"
+	assert final_qa.loc["heterogeneity_readiness_not_effect", "status"] == "ready"
+	assert set(handoff_notes["topic"]) == {
+		"final_panel_scope",
+		"merge_keys",
+		"main_variables",
+		"robustness_variables",
+		"heterogeneity_readiness",
+		"scope_boundary",
+	}
+	for figure_name in [
+		"manual_srdi_did_policy_intensity_panel_fig_year_trend_v2.png",
+		"manual_srdi_did_policy_intensity_panel_fig_province_ranking_v2.png",
+		"manual_srdi_did_policy_intensity_panel_fig_region_structure_v2.png",
+		"manual_srdi_did_policy_intensity_panel_fig_correlations_v2.png",
+	]:
+		assert (ROOT / "outputs" / figure_name).exists()

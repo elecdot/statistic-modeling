@@ -33,3 +33,8 @@ or package code.
   `policy_panel_id`, selected main/robustness/audit variables, z-score
   convenience variables, province crosswalk, variable map, QA report, and
   handoff decision. It does not load enterprise data or run DID regressions.
+- `53b_did_ready_policy_intensity_panel_descriptive_qa_v2.py`: builds final v2
+  policy-side descriptive and QA artifacts for paper/data handoff, including
+  summary statistics, year trends, province rankings, region grouping
+  readiness, correlations, outlier audit, figures, and final handoff notes. It
+  does not estimate heterogeneity effects.
