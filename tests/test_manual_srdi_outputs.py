@@ -418,6 +418,52 @@ def test_manual_srdi_macbert_tfidf_interpretability_v2_outputs_are_consistent() 
 		assert (ROOT / "outputs" / figure_name).exists()
 
 
+def test_manual_srdi_macbert_yearly_tfidf_drift_v2_outputs_are_consistent() -> None:
+	year_label_summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_tfidf_year_label_summary_v2.csv")
+	top_terms = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_tfidf_top_terms_by_year_label_v2.csv")
+	drift_audit = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_tfidf_yearly_drift_audit_v2.csv")
+	interpretation_notes = pd.read_csv(
+		ROOT / "outputs" / "manual_srdi_macbert_tfidf_yearly_interpretation_notes_v2.csv"
+	)
+
+	labels = {"supply", "demand", "environment", "other"}
+	scopes = {"all_records", "local_only"}
+	years = {2019, 2020, 2021, 2022, 2023, 2024}
+	assert len(year_label_summary) == 48
+	assert set(year_label_summary["scope"]) == scopes
+	assert set(year_label_summary["publish_year"]) == years
+	assert set(year_label_summary["label"]) == labels
+	assert year_label_summary["high_confidence_doc_count"].gt(0).all()
+	assert year_label_summary["is_thin_cell"].sum() == 8
+	assert year_label_summary["documents_with_any_domain_term_share"].eq(1).all()
+
+	assert len(top_terms) == 720
+	assert set(top_terms["scope"]) == scopes
+	assert set(top_terms["publish_year"]) == years
+	assert set(top_terms["label"]) == labels
+	assert top_terms.groupby(["scope", "publish_year", "label"]).size().eq(15).all()
+	assert top_terms["mean_tfidf"].ge(0).all()
+
+	assert len(drift_audit) == 88
+	assert set(drift_audit["scope"]) == scopes
+	assert set(drift_audit["comparison_type"]) == {"annual_to_label_all_years", "adjacent_year"}
+	assert drift_audit["cosine_similarity"].between(0, 1).all()
+	assert drift_audit["drift_distance"].between(0, 1).all()
+	assert set(interpretation_notes["topic"]) == {
+		"analysis_scope",
+		"vocabulary_scope",
+		"year_window",
+		"thin_cells",
+		"drift_interpretation",
+		"paper_use",
+	}
+	for figure_name in [
+		"manual_srdi_macbert_fig_tfidf_yearly_tool_terms_v2.png",
+		"manual_srdi_macbert_fig_tfidf_yearly_drift_heatmap_v2.png",
+	]:
+		assert (ROOT / "outputs" / figure_name).exists()
+
+
 def test_manual_srdi_policy_intensity_variable_selection_outputs_are_consistent() -> None:
 	did_variables = pd.read_csv(ROOT / "data" / "processed" / "province_year_srdi_policy_text_variables_v1.csv")
 	variable_selection = pd.read_csv(ROOT / "outputs" / "manual_srdi_policy_intensity_variable_selection_v1.csv")

@@ -29,6 +29,10 @@ or package code.
   full-text dictionary vocabularies, writes label-level top terms, overlap
   diagnostics, representative records, and figures, and does not create new DID
   variables or mutate the policy-side panel.
+- `49d_manual_srdi_yearly_tfidf_drift_v2.py`: extends the same reviewed
+  domain-phrase TF-IDF surface to `publish_year x label` diagnostics for
+  2019-2024. It writes annual top terms, thin-cell flags, drift audits, and
+  figures for policy-language evolution and 2019-corpus continuity checks only.
 - `50b_manual_srdi_policy_intensity_variable_selection_v2.py`: selects the
   2019-2024 v2 policy-text variables from MacBERT probability sums, filtered
   sums, hard-label counts, high-confidence counts, dictionary robustness
