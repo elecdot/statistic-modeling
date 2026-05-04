@@ -317,7 +317,7 @@ province_distribution["policy_count_share"] = province_distribution["policy_coun
 province_distribution = province_distribution.sort_values(["policy_count", "province"], ascending=[False, True], ignore_index=True)
 province_distribution["rank"] = province_distribution.index + 1
 province_distribution.to_csv(PROVINCE_DISTRIBUTION_OUTPUT, index=False)
-province_distribution.head(10)
+province_distribution
 
 # %%
 plot_distribution = province_distribution.sort_values("policy_count", ascending=True)

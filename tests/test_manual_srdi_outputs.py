@@ -384,6 +384,40 @@ def test_manual_srdi_macbert_prediction_qa_variable_readiness_v2_outputs_are_con
 		assert (ROOT / "outputs" / figure_name).exists()
 
 
+def test_manual_srdi_macbert_tfidf_interpretability_v2_outputs_are_consistent() -> None:
+	label_summary = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_tfidf_label_summary_v2.csv")
+	top_terms = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_tfidf_top_terms_v2.csv")
+	overlap_audit = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_tfidf_overlap_audit_v2.csv")
+	representative_docs = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_tfidf_representative_docs_v2.csv")
+	interpretation_notes = pd.read_csv(ROOT / "outputs" / "manual_srdi_macbert_tfidf_interpretation_notes_v2.csv")
+
+	labels = {"supply", "demand", "environment", "other"}
+	assert set(label_summary["label"]) == labels
+	assert label_summary["high_confidence_doc_count"].gt(0).all()
+	assert label_summary["documents_with_any_domain_term_share"].eq(1).all()
+	assert set(top_terms["label"]) == labels
+	assert top_terms.groupby("label").size().eq(30).all()
+	assert top_terms["term"].notna().all()
+	assert top_terms["mean_tfidf"].ge(0).all()
+	assert len(overlap_audit) >= 10
+	assert overlap_audit["label_count"].ge(2).all()
+	assert set(representative_docs["label"]) == labels
+	assert representative_docs.groupby("label").size().ge(15).all()
+	assert set(interpretation_notes["topic"]) == {
+		"analysis_scope",
+		"vocabulary_scope",
+		"label_samples",
+		"multi_label_policy",
+		"overlap_interpretation",
+		"paper_use",
+	}
+	for figure_name in [
+		"manual_srdi_macbert_fig_tfidf_top_terms_v2.png",
+		"manual_srdi_macbert_fig_tfidf_label_heatmap_v2.png",
+	]:
+		assert (ROOT / "outputs" / figure_name).exists()
+
+
 def test_manual_srdi_policy_intensity_variable_selection_outputs_are_consistent() -> None:
 	did_variables = pd.read_csv(ROOT / "data" / "processed" / "province_year_srdi_policy_text_variables_v1.csv")
 	variable_selection = pd.read_csv(ROOT / "outputs" / "manual_srdi_policy_intensity_variable_selection_v1.csv")

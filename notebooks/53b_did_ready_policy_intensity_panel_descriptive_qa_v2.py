@@ -330,6 +330,7 @@ ax.set_ylabel("Summed MacBERT probability")
 ax.set_xticks(YEARS)
 ax.legend(frameon=False, ncols=3)
 save_figure(fig, YEAR_TREND_FIG)
+fig
 
 # %% [markdown]
 # ## 4. Province Rankings
@@ -360,11 +361,12 @@ province_ranking.head(10)
 
 # %%
 fig, ax = plt.subplots(figsize=(7.4, 5.6))
-plot_data = province_ranking.sort_values("srdi_total_tool_intensity", ascending=True).tail(15)
+plot_data = province_ranking.sort_values("srdi_total_tool_intensity", ascending=True)
 ax.barh(plot_data["did_province_key"].map(PROVINCE_EN), plot_data["srdi_total_tool_intensity"], color="#2563eb")
 ax.set_xlabel("Total policy-tool intensity")
 ax.set_ylabel("")
 save_figure(fig, PROVINCE_RANKING_FIG)
+fig
 
 # %% [markdown]
 # ## 5. Regional Grouping Readiness
@@ -437,6 +439,7 @@ ax.set_xlabel("Region group")
 ax.set_ylabel("Summed MacBERT probability")
 ax.legend(frameon=False, ncols=3)
 save_figure(fig, REGION_STRUCTURE_FIG)
+fig
 
 # %% [markdown]
 # ## 6. Correlation Diagnostics

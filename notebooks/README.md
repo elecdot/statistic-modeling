@@ -23,6 +23,12 @@ or package code.
   completed 2019-2024 v2 MacBERT predictions against structural QA, prediction
   distributions, dictionary alignment, boundary samples, and variable-readiness
   decisions. It stops before final policy-side panel construction.
+- `49c_manual_srdi_classified_record_tfidf_interpretability_v2.py`: builds a
+  dependency-light domain-phrase TF-IDF interpretability and quality-audit layer
+  for the completed v2 classified records. It uses the reviewed label-rule and
+  full-text dictionary vocabularies, writes label-level top terms, overlap
+  diagnostics, representative records, and figures, and does not create new DID
+  variables or mutate the policy-side panel.
 - `50b_manual_srdi_policy_intensity_variable_selection_v2.py`: selects the
   2019-2024 v2 policy-text variables from MacBERT probability sums, filtered
   sums, hard-label counts, high-confidence counts, dictionary robustness
