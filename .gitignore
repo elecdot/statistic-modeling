@@ -24,3 +24,23 @@ outputs/*
 
 # Codex local state
 .codex
+
+# Large Binary Files
+*.bin
+*.dat
+*.zip
+*.tar.gz
+*.pdf
+*.docx
+*.xlsx
+*.pptx
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.mp4
+*.mp3
+*.avi
+*.mkv
+*.iso
+*.exe
